@@ -15,7 +15,7 @@ esbuild.build({
 	banner: {
 		js: banner,
 	},
-	entryPoints: ['main.ts'],
+	entryPoints: ['canvasMindMap.ts'],
 	bundle: true,
 	external: [
 		'obsidian',
