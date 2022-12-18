@@ -1,14 +1,84 @@
-import { Plugin } from 'obsidian';
+import { ItemView, Plugin, TFile } from 'obsidian';
 import { around } from "monkey-around";
 
 export default class CanvasMindMap extends Plugin {
 
 	async onload() {
+
+		this.registerCommands();
 		this.patchCanvas();
 	}
 
 	onunload() {
 
+	}
+
+	registerCommands() {
+		this.addCommand({
+		    id: 'split-into-mindmap',
+		    name: 'Split into mindmap based on H1',
+		    checkCallback: (checking: boolean) => {
+		        // Conditions to check
+		        const canvasView = app.workspace.getActiveViewOfType(ItemView);
+		        if (canvasView?.getViewType() === "canvas") {
+		            // If checking is true, we're simply "checking" if the command can be run.
+		            // If checking is false, then we want to actually perform the operation.
+					const random = (e: number) => {
+						let t = [];
+						for (let n = 0; n < e; n++) {
+							t.push((16 * Math.random() | 0).toString(16));
+						}
+						return t.join("")
+					}
+
+					const createChildFileNode = (canvas: any, parentNode: any, file: TFile, path: string, y: number) => {
+						const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
+						const tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						canvas.deselectAll();
+						canvas.addNode(tempChildNode);
+
+						const tempEdge = new edge.constructor(canvas, random(16), {side: "right", node: parentNode}, {side: "left", node: tempChildNode})
+						canvas.addEdge(tempEdge);
+
+						tempEdge.render();
+						canvas.requestSave();
+
+						return tempChildNode;
+					}
+
+
+		            if (!checking) {
+						// @ts-ignore
+		                const canvas = canvasView?.canvas;
+						const currentSelection = canvas?.selection;
+						if(currentSelection.size > 1) {
+							return;
+						}
+
+						const currentSelectionItem = currentSelection.values().next().value;
+						if(!currentSelectionItem.filePath) return;
+
+						const currentSelectionItemFile = currentSelectionItem.file as TFile;
+						if(!(currentSelectionItemFile.extension === "md")) return;
+
+						const currentFileHeadings = app.metadataCache.getFileCache(currentSelectionItemFile)?.headings;
+						if(!currentFileHeadings) return;
+
+						const currentFileHeadingH1 = currentFileHeadings.filter(heading => heading.level === 1);
+						if(currentFileHeadingH1.length === 0) return;
+
+						const nodeGroupHeight = (currentSelectionItem.height * 0.6 + 20) * currentFileHeadingH1.length;
+						let direction = -1;
+						const nodeGroupY = currentSelectionItem.y + currentSelectionItem.height / 2 + (nodeGroupHeight / 2) * direction;
+
+						currentFileHeadingH1.forEach((item, index) => {
+							createChildFileNode(canvas, currentSelectionItem, currentSelectionItemFile, "#" + item.heading, nodeGroupY - direction * (currentSelectionItem.height * 0.6 + 20) * index);
+						})
+		            }
+		            return true;
+		        }
+		    }
+		});
 	}
 
 	patchCanvas() {
