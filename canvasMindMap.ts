@@ -81,36 +81,6 @@ export default class CanvasMindMap extends Plugin {
 		        }
 		    }
 		});
-		this.addCommand({
-		    id: 'exist-to-canvas',
-		    name: 'Exist to Canvas',
-		    checkCallback: (checking: boolean) => {
-		        // Conditions to check
-		        const canvasView = this.app.workspace.getActiveViewOfType(ItemView);
-		        if (canvasView) {
-		            // If checking is true, we're simply "checking" if the command can be run.
-		            // If checking is false, then we want to actually perform the operation.
-		            if (!checking) {
-						const editorInfo = app.workspace.activeEditor;
-						if(!editorInfo) return;
-
-						editorInfo?.toggleMode();
-
-						const node = editorInfo?.node;
-						const canvas = canvasView?.canvas;
-
-						canvas.wrapperEl.focus();
-
-						canvas.deselectAll();
-						canvas.select(node);
-						canvas.zoomToSelection();
-		            }
-
-		            // This command will only show up in Command Palette when the check function returns true
-		            return true;
-		        }
-		    }
-		});
 	}
 
 	patchCanvas() {
@@ -410,7 +380,10 @@ export default class CanvasMindMap extends Plugin {
 				showPreview: (next) =>
 					function (e: any) {
 						next.call(this, e);
-						if(e) this.node.canvas.wrapperEl.focus();
+						if(e) {
+							this.node.canvas.wrapperEl.focus();
+							this.node.setIsEditing(false);
+						}
 					},
 			});
 			this.register(uninstaller);
