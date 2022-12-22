@@ -7,7 +7,6 @@ export default class CanvasMindMap extends Plugin {
 
 		this.registerCommands();
 		this.patchCanvas();
-		this.patchCanvasNode();
 		this.patchMarkdownFileInfo();
 	}
 
@@ -314,40 +313,6 @@ export default class CanvasMindMap extends Plugin {
 							this.zoomToSelection();
 							tempChildNode.startEditing();
 						}
-
-					},
-			});
-			this.register(uninstaller);
-
-			canvas?.view.leaf.rebuildView();
-			console.log("Obsidian-Canvas-MindMap: canvas view patched");
-			return true;
-		}
-
-		this.app.workspace.onLayoutReady(() => {
-			if (!patchCanvas()) {
-				const evt = app.workspace.on("layout-change", () => {
-					patchCanvas() && app.workspace.offref(evt);
-				});
-				this.registerEvent(evt);
-			}
-		});
-	}
-
-	patchCanvasNode() {
-		const patchCanvas = () => {
-			const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view;
-			// @ts-ignore
-			const canvas = canvasView?.canvas;
-			if (!canvasView) return false;
-
-			const patchCanvasView = canvas.constructor;
-
-			const uninstaller = around(patchCanvasView.prototype, {
-				onKeydown: (next) =>
-					function (e: any) {
-
-						next.call(this, e);
 
 					},
 			});
