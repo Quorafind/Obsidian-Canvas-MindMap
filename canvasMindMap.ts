@@ -1,4 +1,4 @@
-import { ItemView, Plugin, TFile } from 'obsidian';
+import { ItemView, MarkdownFileInfo, Notice, Plugin, TFile } from 'obsidian';
 import { around } from "monkey-around";
 
 export default class CanvasMindMap extends Plugin {
@@ -7,6 +7,7 @@ export default class CanvasMindMap extends Plugin {
 
 		this.registerCommands();
 		this.patchCanvas();
+		this.patchMarkdownFileInfo();
 	}
 
 	onunload() {
@@ -96,10 +97,16 @@ export default class CanvasMindMap extends Plugin {
 			canvas.deselectAll();
 			canvas.addNode(tempChildNode);
 
-			const tempEdge = new edge.constructor(canvas, random(16), {side: "right", node: parentNode}, {side: "left", node: tempChildNode})
-			canvas.addEdge(tempEdge);
+			if(edge) {
+				const tempEdge = new edge.constructor(canvas, random(16), {side: "right", node: parentNode}, {side: "left", node: tempChildNode})
+				canvas.addEdge(tempEdge);
 
-			tempEdge.render();
+				tempEdge.render();
+			}else {
+				new Notice("You should have at least one edge in the canvas to use this command.");
+			}
+
+
 			canvas.requestSave();
 
 			return tempChildNode;
@@ -117,7 +124,7 @@ export default class CanvasMindMap extends Plugin {
 				onKeydown: (next) =>
 					function (e: any) {
 						if(e.key === "Backspace" || e.key === "Delete") {
-							if(this.selection.size > 1) {
+							if(this.selection.size !== 1)  {
 								return next.call(this, e);
 							}
 							const childNode = this.selection.entries().next().value[1];
@@ -184,7 +191,7 @@ export default class CanvasMindMap extends Plugin {
 						next.call(this, e);
 
 						if(e.key === "Tab") {
-							if(this.selection.size > 1) return;
+							if(this.selection.size !== 1) return;
 							const parentNode = this.selection.entries().next().value[1];
 
 							// Get Previous Node Edges
@@ -230,7 +237,7 @@ export default class CanvasMindMap extends Plugin {
 										if (i === 0) {
 											(tempNode = prevAllNodes[i]).moveTo({
 												x: tempChildNode.x,
-												y: parentNode.y + parentNode.height - (wholeHeight / 2)
+												y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
 											});
 										} else {
 											(tempNode = prevAllNodes[i]).moveTo({
@@ -250,7 +257,7 @@ export default class CanvasMindMap extends Plugin {
 							tempChildNode.startEditing();
 						}
 						if(e.key === "Enter") {
-							if(this.selection.size > 1) return;
+							if(this.selection.size !== 1)  return;
 							const childNode = this.selection.entries().next().value[1];
 							if(childNode.isEditing) return;
 
@@ -287,7 +294,7 @@ export default class CanvasMindMap extends Plugin {
 									if( i === 0) {
 										(tempNode = allnodes[i]).moveTo({
 											x: childNode.x,
-											y: parentNode.y + parentNode.height - (wholeHeight / 2)
+											y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
 										});
 									} else {
 										(tempNode = allnodes[i]).moveTo({
@@ -320,6 +327,42 @@ export default class CanvasMindMap extends Plugin {
 			if (!patchCanvas()) {
 				const evt = app.workspace.on("layout-change", () => {
 					patchCanvas() && app.workspace.offref(evt);
+				});
+				this.registerEvent(evt);
+			}
+		});
+	}
+
+	patchMarkdownFileInfo() {
+		const patchEditor = () => {
+			const editorInfo = app.workspace.activeEditor;
+			if(!editorInfo) return false;
+
+			const patchEditorInfo = editorInfo.constructor;
+			console.log(app.workspace.activeEditor);
+
+			const uninstaller = around(patchEditorInfo.prototype, {
+				showPreview: (next) =>
+					function (e: any) {
+						next.call(this, e);
+						if(e) {
+							this.node.canvas.wrapperEl.focus();
+							this.node.setIsEditing(false);
+						}
+					},
+			});
+			this.register(uninstaller);
+
+			console.log("Obsidian-Canvas-MindMap: markdown file info patched");
+			return true;
+		}
+
+		this.app.workspace.onLayoutReady(() => {
+			if (!patchEditor()) {
+				const evt = app.workspace.on("file-open", () => {
+					setTimeout(()=>{
+						patchEditor() && app.workspace.offref(evt);
+					}, 100);
 				});
 				this.registerEvent(evt);
 			}
