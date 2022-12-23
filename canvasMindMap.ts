@@ -376,10 +376,11 @@ export default class CanvasMindMap extends Plugin {
 			const node = Array.from(canvas.nodes).first();
 			if (!node) return false;
 
+			// @ts-ignore
 			const nodeInstance = node[1];
 
 			const uninstaller = around(nodeInstance.constructor.prototype, {
-				setColor: (next) =>
+				setColor: (next: any) =>
 					function (e: any, t: any) {
 						next.call(this, e, t);
 						this.canvas.getEdgesForNode(this).forEach((edge: any) => {
