@@ -7,6 +7,7 @@ export default class CanvasMindMap extends Plugin {
 		this.registerCommands();
 		this.patchCanvas();
 		this.patchMarkdownFileInfo();
+		this.patchCanvasNode();
 	}
 
 	onunload() {
@@ -361,6 +362,46 @@ export default class CanvasMindMap extends Plugin {
 			if (!patchCanvas()) {
 				const evt = app.workspace.on("layout-change", () => {
 					patchCanvas() && app.workspace.offref(evt);
+				});
+				this.registerEvent(evt);
+			}
+		});
+	}
+
+	patchCanvasNode() {
+		const patchNode = () => {
+			const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view;
+			// @ts-ignore
+			const canvas = canvasView?.canvas;
+			const node = Array.from(canvas.nodes).first();
+			if (!node) return false;
+
+			const nodeInstance = node[1];
+
+			const uninstaller = around(nodeInstance.constructor.prototype, {
+				setColor: (next) =>
+					function (e: any, t: any) {
+						next.call(this, e, t);
+						this.canvas.getEdgesForNode(this).forEach((edge: any) => {
+							if(edge.from.node === this) {
+								edge.setColor(e, true);
+								edge.render();
+								// edge.to.node.setColor(e, true);
+							}
+						})
+						canvas.requestSave();
+					},
+			});
+			this.register(uninstaller);
+
+			console.log("Obsidian-Canvas-MindMap: canvas node patched");
+			return true;
+		}
+
+		this.app.workspace.onLayoutReady(() => {
+			if (!patchNode()) {
+				const evt = app.workspace.on("layout-change", () => {
+					patchNode() && app.workspace.offref(evt);
 				});
 				this.registerEvent(evt);
 			}
