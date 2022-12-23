@@ -102,31 +102,32 @@ export default class CanvasMindMap extends Plugin {
 
 				tempEdge.render();
 			} else {
-				const canvasFile = await this.app.vault.cachedRead(canvas.view.file);
-				const canvasFileData = JSON.parse(canvasFile);
+				setTimeout(async () => {
+					const canvasFile = await this.app.vault.cachedRead(canvas.view.file);
+					const canvasFileData = JSON.parse(canvasFile);
 
-				canvasFileData.edges.push({
-					id: random(16),
-					fromNode: node1.id,
-					fromSide:"right",
-					toNode: node2.id,
-					toSide: "left"
-				});
-				canvasFileData.nodes.push({
-					id: node2.id,
-					x: node2.x,
-					y: node2.y,
-					width: node2.width,
-					height: node2.height,
-					type: "text",
-					text: node2.text,
-				})
+					canvasFileData.edges.push({
+						id: random(16),
+						fromNode: node1.id,
+						fromSide: "right",
+						toNode: node2.id,
+						toSide: "left"
+					});
+					canvasFileData.nodes.push({
+						id: node2.id,
+						x: node2.x,
+						y: node2.y,
+						width: node2.width,
+						height: node2.height,
+						type: "text",
+						text: node2.text,
+					})
 
-				canvas.setData(canvasFileData);
-				canvas.requestSave();
-				canvas.requestUpdateFileOpen();
+					canvas.setData(canvasFileData);
+					canvas.requestSave();
 
-				await this.app.vault.modify(canvas.view.file, JSON.stringify(canvasFileData, null, 2));
+					// await this.app.vault.modify(canvas.view.file, JSON.stringify(canvasFileData, null, 2));
+				}, 500);
 			}
 		}
 
