@@ -4,7 +4,6 @@ import { around } from "monkey-around";
 export default class CanvasMindMap extends Plugin {
 
 	async onload() {
-
 		this.registerCommands();
 		this.patchCanvas();
 		this.patchMarkdownFileInfo();
@@ -91,21 +90,55 @@ export default class CanvasMindMap extends Plugin {
 			return t.join("")
 		}
 
-		const createNode = (canvas: any, parentNode: any, y: number) => {
+		const createEdge = async (node1: any, node2: any, canvas: any)=> {
 			const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
-			const tempChildNode = canvas.createTextNode({x: parentNode.x + parentNode.width + 200, y: y}, {height: parentNode.height, width: parentNode.width}, true);
-			canvas.deselectAll();
-			canvas.addNode(tempChildNode);
 
-			if(edge) {
-				const tempEdge = new edge.constructor(canvas, random(16), {side: "right", node: parentNode}, {side: "left", node: tempChildNode})
+			if (edge) {
+				const tempEdge = new edge.constructor(canvas, random(16), {
+					side: "right",
+					node: node1
+				}, { side: "left", node: node2 })
 				canvas.addEdge(tempEdge);
 
 				tempEdge.render();
-			}else {
-				new Notice("You should have at least one edge in the canvas to use this command.");
-			}
+			} else {
+				const canvasFile = await this.app.vault.cachedRead(canvas.view.file);
+				const canvasFileData = JSON.parse(canvasFile);
 
+				canvasFileData.edges.push({
+					id: random(16),
+					fromNode: node1.id,
+					fromSide:"right",
+					toNode: node2.id,
+					toSide: "left"
+				});
+				canvasFileData.nodes.push({
+					id: node2.id,
+					x: node2.x,
+					y: node2.y,
+					width: node2.width,
+					height: node2.height,
+					type: "text",
+					text: node2.text,
+				})
+
+				canvas.setData(canvasFileData);
+				canvas.requestSave();
+				canvas.requestUpdateFileOpen();
+
+				await this.app.vault.modify(canvas.view.file, JSON.stringify(canvasFileData, null, 2));
+			}
+		}
+
+		const createNode = async (canvas: any, parentNode: any, y: number) => {
+			const tempChildNode = canvas.createTextNode({
+				x: parentNode.x + parentNode.width + 200,
+				y: y
+			}, { height: parentNode.height, width: parentNode.width }, true);
+			canvas.deselectAll();
+			canvas.addNode(tempChildNode);
+
+			await createEdge(parentNode, tempChildNode, canvas);
 
 			canvas.requestSave();
 
@@ -122,50 +155,50 @@ export default class CanvasMindMap extends Plugin {
 
 			const uninstaller = around(patchCanvasView.prototype, {
 				onKeydown: (next) =>
-					function (e: any) {
-						if(e.key === "Backspace" || e.key === "Delete") {
-							if(this.selection.size !== 1)  {
+					async function (e: any) {
+						if (e.key === "Backspace" || e.key === "Delete") {
+							if (this.selection.size !== 1) {
 								return next.call(this, e);
 							}
 							const childNode = this.selection.entries().next().value[1];
-							if(childNode.isEditing) return;
+							if (childNode.isEditing) return;
 
-							const edges = this.getEdgesForNode(childNode).filter((item: any)=>{
+							const edges = this.getEdgesForNode(childNode).filter((item: any) => {
 								return item.to.node.id === childNode.id;
 							});
-							if(edges.length === 0) return;
+							if (edges.length === 0) return;
 							const parentNode = edges[0].from.node;
 
 
 							next.call(this, e);
 
 							let wholeHeight = 0;
-							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any)=>{
+							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
 								return (item.from.node.id === parentNode.id && item.to.side === "left")
 							});
 
 							let allnodes = [];
-							for(let i = 0; i < parentEdges.length; i++) {
+							for (let i = 0; i < parentEdges.length; i++) {
 								let node = parentEdges[i].to.node;
 								allnodes.push(node);
 								wholeHeight += (node.height + 20);
 							}
-							allnodes.sort((a, b)=>{
+							allnodes.sort((a, b) => {
 								return a.y - b.y;
 							});
 
 							// Check if this is a Mindmap
-							if(allnodes.length === 1) return;
-							if(allnodes.length > 1) {
-								if(allnodes[0].x !== allnodes[0].x) {
-									return ;
+							if (allnodes.length === 1) return;
+							if (allnodes.length > 1) {
+								if (allnodes[0].x !== allnodes[0].x) {
+									return;
 								}
 							}
 
 							let preNode;
 							for (let i = 0; i < allnodes.length; i++) {
 								let tempNode;
-								if( i === 0) {
+								if (i === 0) {
 									(tempNode = allnodes[i]).moveTo({
 										x: childNode.x,
 										y: parentNode.y + parentNode.height - (wholeHeight / 2)
@@ -190,35 +223,35 @@ export default class CanvasMindMap extends Plugin {
 						}
 						next.call(this, e);
 
-						if(e.key === "Tab") {
-							if(this.selection.size !== 1) return;
+						if (e.key === "Tab") {
+							if (this.selection.size !== 1) return;
 							const parentNode = this.selection.entries().next().value[1];
 
 							// Get Previous Node Edges
 							let wholeHeight = 0;
 
-							let prevParentEdges = this.getEdgesForNode(parentNode).filter((item: any)=>{
+							let prevParentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
 								return (item.from.node.id === parentNode.id && item.to.side === "left")
 							});
 
 							let tempChildNode;
 
-							if(prevParentEdges.length === 0) {
-								tempChildNode = createNode(this, parentNode, parentNode.y);
-							}else{
+							if (prevParentEdges.length === 0) {
+								tempChildNode = await createNode(this, parentNode, parentNode.y);
+							} else {
 								let prevAllNodes = [];
-								for(let i = 0; i < prevParentEdges?.length; i++) {
+								for (let i = 0; i < prevParentEdges?.length; i++) {
 									let node = prevParentEdges[i].to.node;
 									prevAllNodes.push(node);
 								}
 
-								if(prevAllNodes.length > 1) {
+								if (prevAllNodes.length > 1) {
 									prevAllNodes.sort((a, b) => {
 										return a.y - b.y;
 									});
 								}
-								const distanceY = prevAllNodes[prevAllNodes.length - 1 ]?.y + prevAllNodes[prevAllNodes.length - 1 ]?.height + 20;
-								tempChildNode = createNode(this, parentNode, distanceY);
+								const distanceY = prevAllNodes[prevAllNodes.length - 1]?.y + prevAllNodes[prevAllNodes.length - 1]?.height + 20;
+								tempChildNode = await createNode(this, parentNode, distanceY);
 
 								prevAllNodes.push(tempChildNode)
 								prevAllNodes.sort((a, b) => {
@@ -226,9 +259,9 @@ export default class CanvasMindMap extends Plugin {
 								});
 
 								// Check if this is a Mindmap
-								if(prevAllNodes.length === 1) return;
+								if (prevAllNodes.length === 1) return;
 
-								if(prevAllNodes.length > 1 && prevAllNodes[0].x === prevAllNodes[1]?.x) {
+								if (prevAllNodes.length > 1 && prevAllNodes[0].x === prevAllNodes[1]?.x) {
 									let preNode;
 									wholeHeight = prevAllNodes.length * (parentNode.height + 20);
 
@@ -256,42 +289,42 @@ export default class CanvasMindMap extends Plugin {
 							this.zoomToSelection();
 							tempChildNode.startEditing();
 						}
-						if(e.key === "Enter") {
-							if(this.selection.size !== 1)  return;
+						if (e.key === "Enter") {
+							if (this.selection.size !== 1) return;
 							const childNode = this.selection.entries().next().value[1];
-							if(childNode.isEditing) return;
+							if (childNode.isEditing) return;
 
-							const edges = this.getEdgesForNode(childNode).filter((item: any)=>{
+							const edges = this.getEdgesForNode(childNode).filter((item: any) => {
 								return item.to.node.id === childNode.id;
 							});
-							if(edges.length === 0) return;
+							if (edges.length === 0) return;
 							const parentNode = edges[0].from.node;
 
 							const distanceY = childNode.y + childNode.height / 2 + 110;
-							const tempChildNode = createNode(this, parentNode, distanceY);
+							const tempChildNode = await createNode(this, parentNode, distanceY);
 
 							let wholeHeight = 0;
-							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any)=>{
+							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
 								return (item.from.node.id === parentNode.id && item.to.side === "left")
 							});
 
 							let allnodes = [];
-							for(let i = 0; i < parentEdges.length; i++) {
+							for (let i = 0; i < parentEdges.length; i++) {
 								let node = parentEdges[i].to.node;
 								allnodes.push(node);
 								wholeHeight += (node.height + 20);
 							}
-							allnodes.sort((a, b)=>{
+							allnodes.sort((a, b) => {
 								return a.y - b.y;
 							});
 
 							// Check if this is a Mindmap
-							if(allnodes.length === 1) return;
-							if(allnodes.length > 1 && allnodes[0].x === allnodes[1]?.x) {
+							if (allnodes.length === 1) return;
+							if (allnodes.length > 1 && allnodes[0].x === allnodes[1]?.x) {
 								let preNode;
 								for (let i = 0; i < allnodes.length; i++) {
 									let tempNode;
-									if( i === 0) {
+									if (i === 0) {
 										(tempNode = allnodes[i]).moveTo({
 											x: childNode.x,
 											y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
@@ -339,7 +372,6 @@ export default class CanvasMindMap extends Plugin {
 			if(!editorInfo) return false;
 
 			const patchEditorInfo = editorInfo.constructor;
-			console.log(app.workspace.activeEditor);
 
 			const uninstaller = around(patchEditorInfo.prototype, {
 				showPreview: (next) =>
