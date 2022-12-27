@@ -1,4 +1,4 @@
-import { ItemView, MarkdownFileInfo, Notice, Plugin, TFile } from 'obsidian';
+import { ItemView, MarkdownFileInfo, Notice, Plugin, requireApiVersion, TFile } from 'obsidian';
 import { around } from "monkey-around";
 
 export default class CanvasMindMap extends Plugin {
@@ -34,7 +34,28 @@ export default class CanvasMindMap extends Plugin {
 
 					const createChildFileNode = (canvas: any, parentNode: any, file: TFile, path: string, y: number) => {
 						const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
-						const tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						let tempChildNode;
+						if(!requireApiVersion("1.1.10")) tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						else {
+							tempChildNode = canvas.createFileNode({
+								file: file,
+								subpath: path,
+								pos: {
+									x: parentNode.x + parentNode.width + 200,
+									y: y,
+									width: parentNode.width,
+									height: parentNode.height * 0.6
+								},
+								size: {
+									x: parentNode.x + parentNode.width + 200,
+									y: y,
+									width: parentNode.width,
+									height: parentNode.height * 0.6
+								},
+								save: true,
+								focus: false,
+							});
+						}
 						canvas.deselectAll();
 						canvas.addNode(tempChildNode);
 
@@ -133,10 +154,31 @@ export default class CanvasMindMap extends Plugin {
 		}
 
 		const createNode = async (canvas: any, parentNode: any, y: number) => {
-			const tempChildNode = canvas.createTextNode({
-				x: parentNode.x + parentNode.width + 200,
-				y: y
-			}, { height: parentNode.height, width: parentNode.width }, true);
+			let tempChildNode;
+			if(!requireApiVersion("1.1.10")) {
+				tempChildNode = canvas.createTextNode({
+					x: parentNode.x + parentNode.width + 200,
+					y: y
+				}, { height: parentNode.height, width: parentNode.width }, true);
+			} else {
+				tempChildNode = canvas.createTextNode({
+					pos: {
+						x: parentNode.x + parentNode.width + 200,
+						y: y,
+						height: parentNode.height,
+						width: parentNode.width
+					},
+					size: {
+						x: parentNode.x + parentNode.width + 200,
+						y: y,
+						height: parentNode.height,
+						width: parentNode.width
+					},
+					text: "",
+					focus: false,
+					save: true,
+				});
+			}
 			canvas.deselectAll();
 			canvas.addNode(tempChildNode);
 
