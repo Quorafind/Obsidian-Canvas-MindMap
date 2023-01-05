@@ -34,7 +34,8 @@ export default class CanvasMindMap extends Plugin {
 
 					const createChildFileNode = (canvas: any, parentNode: any, file: TFile, path: string, y: number) => {
 						const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
-						const tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						let tempChildNode;
+						tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
 						canvas.deselectAll();
 						canvas.addNode(tempChildNode);
 
@@ -132,8 +133,78 @@ export default class CanvasMindMap extends Plugin {
 			}
 		}
 
-		const createNode = async (canvas: any, parentNode: any, y: number) => {
+		const navigate = (canvas: any, direction: string) => {
+			const currentSelection = canvas.selection;
+			if(currentSelection.size !== 1) return;
+
+			const currentSelectionItem = currentSelection.values().next().value;
+
+			const currentViewPortNodes = canvas.getViewportNodes();
+			const x = currentSelectionItem.x;
+			const y = currentSelectionItem.y;
+
+			canvas.deselectAll();
+
+			let nextNode = null;
+			if(direction === "top") {
+				let nodeArray = currentViewPortNodes.filter((item: any) => item.y < y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
+				if(nodeArray.length === 0) {
+					nextNode = currentViewPortNodes.filter((node: any) => node.y < y).sort((a: any, b: any) => b.y - a.y).sort((a: any, b: any) => a.x - b.x)[0];
+				}else {
+					nextNode = nodeArray?.sort((a: any, b: any) => b.y - a.y)[0];
+				}
+			} else if(direction === "bottom") {
+				let nodeArray = currentViewPortNodes.filter((item: any) => item.y > y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
+				if(nodeArray.length === 0) {
+					nextNode = currentViewPortNodes.filter((node: any) => node.y > y).sort((a: any, b: any) => a.y - b.y).sort((a: any, b: any) => a.x - b.x )[0];
+				}else {
+					nextNode = nodeArray?.sort((a: any, b: any) => a.y - b.y)[0];
+				}
+			} else if(direction === "left") {
+				let nodeArray = currentViewPortNodes.filter((item: any) => item.x < x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
+				if(nodeArray.length === 0) {
+					nextNode = currentViewPortNodes.filter((node: any) => node.x < x).sort((a: any, b: any) => b.x - a.x).sort((a: any, b: any) => a.y - b.y)[0];
+				}else {
+					nextNode = nodeArray?.sort((a: any, b: any) => b.x - a.x)[0];
+				}
+			} else if (direction === "right") {
+				let nodeArray = currentViewPortNodes.filter((item: any) => item.x > x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
+				if(nodeArray.length === 0) {
+					nextNode = currentViewPortNodes.filter((node: any) => node.x > x).sort((a: any, b: any) => a.x - b.x).sort((a: any, b: any) => a.y - b.y)[0];
+				}else{
+					nextNode = nodeArray?.sort((a: any, b: any) => a.x - b.x)[0];
+				}
+			}
+
+			if(nextNode) {
+				canvas.selectOnly(nextNode);
+				canvas.zoomToSelection();
+			}
+
+			return nextNode;
+		}
+
+		const createSperateNode = (canvas: any, direction: string) => {
+			let selection = canvas.selection;
+			if(selection.size !== 1) return;
+
+			let node = selection.values().next().value;
+			let x = direction === "left" ? node.x - node.width - 50 : direction === "right" ? node.x + node.width + 50 : node.x;
+			let y = direction === "top" ? node.y - node.height - 100 : direction === "bottom" ? node.y + node.height + 100 : node.y;
+
 			const tempChildNode = canvas.createTextNode({
+				x: x,
+				y: y
+			}, { height: node.height, width: node.width }, true);
+
+			canvas.zoomToSelection();
+
+			return tempChildNode;
+		}
+
+		const createNode = async (canvas: any, parentNode: any, y: number) => {
+			let tempChildNode;
+			tempChildNode = canvas.createTextNode({
 				x: parentNode.x + parentNode.width + 200,
 				y: y
 			}, { height: parentNode.height, width: parentNode.width }, true);
@@ -185,7 +256,7 @@ export default class CanvasMindMap extends Plugin {
 								allnodes.push(node);
 								wholeHeight += (node.height + 20);
 							}
-							allnodes.sort((a, b) => {
+							allnodes.sort((a: any, b: any) => {
 								return a.y - b.y;
 							});
 
@@ -223,6 +294,18 @@ export default class CanvasMindMap extends Plugin {
 
 							return;
 						}
+
+						if (e.code === "Space") {
+							const selection = this.selection;
+							if(selection.size !== 1) return;
+							const node = selection.entries().next().value[1];
+
+
+							if(node.isEditing) return;
+
+							node.startEditing();
+						}
+
 						next.call(this, e);
 
 						if (e.key === "Tab") {
@@ -248,7 +331,7 @@ export default class CanvasMindMap extends Plugin {
 								}
 
 								if (prevAllNodes.length > 1) {
-									prevAllNodes.sort((a, b) => {
+									prevAllNodes.sort((a: any, b: any) => {
 										return a.y - b.y;
 									});
 								}
@@ -256,7 +339,7 @@ export default class CanvasMindMap extends Plugin {
 								tempChildNode = await createNode(this, parentNode, distanceY);
 
 								prevAllNodes.push(tempChildNode)
-								prevAllNodes.sort((a, b) => {
+								prevAllNodes.sort((a: any, b: any) => {
 									return a.y - b.y;
 								});
 
@@ -316,7 +399,7 @@ export default class CanvasMindMap extends Plugin {
 								allnodes.push(node);
 								wholeHeight += (node.height + 20);
 							}
-							allnodes.sort((a, b) => {
+							allnodes.sort((a: any, b: any) => {
 								return a.y - b.y;
 							});
 
@@ -349,6 +432,40 @@ export default class CanvasMindMap extends Plugin {
 							tempChildNode.startEditing();
 						}
 
+
+
+						if(e.ctrlKey) {
+							switch (e.key) {
+								case "ArrowUp":
+									createSperateNode(this, "top");
+									break;
+								case "ArrowDown":
+									createSperateNode(this, "bottom");
+									break;
+								case "ArrowLeft":
+									createSperateNode(this, "left");
+									break;
+								case "ArrowRight":
+									createSperateNode(this, "right");
+									break;
+							}
+							return;
+						}
+
+						switch (e.key) {
+							case "ArrowUp":
+								navigate(this, "top");
+								break;
+							case "ArrowDown":
+								navigate(this, "bottom");
+								break;
+							case "ArrowLeft":
+								navigate(this, "left");
+								break;
+							case "ArrowRight":
+								navigate(this, "right");
+								break;
+						}
 					},
 			});
 			this.register(uninstaller);
@@ -373,6 +490,8 @@ export default class CanvasMindMap extends Plugin {
 			const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
+			if(!canvas) return false;
+
 			const node = Array.from(canvas.nodes).first();
 			if (!node) return false;
 
@@ -421,8 +540,8 @@ export default class CanvasMindMap extends Plugin {
 					function (e: any) {
 						next.call(this, e);
 						if(e) {
-							this.node.canvas.wrapperEl.focus();
-							this.node.setIsEditing(false);
+							this.node?.canvas.wrapperEl.focus();
+							this.node?.setIsEditing(false);
 						}
 					},
 			});
