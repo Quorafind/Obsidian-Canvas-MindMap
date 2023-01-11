@@ -272,7 +272,6 @@ export default class CanvasMindMap extends Plugin {
 					save: true,
 				});
 			}
-
 			canvas.deselectAll();
 			canvas.addNode(tempChildNode);
 
