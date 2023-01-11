@@ -555,6 +555,8 @@ export default class CanvasMindMap extends Plugin {
 							if(selection.size !== 1) return;
 							const node = selection.entries().next().value[1];
 
+							if(node?.label || node?.url) return ;
+
 							if(node.isEditing) return;
 							node.startEditing();
 						}
