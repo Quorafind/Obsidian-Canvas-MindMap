@@ -1,4 +1,4 @@
-import { ItemView, MarkdownFileInfo, Notice, Plugin, TFile } from 'obsidian';
+import { ItemView, MarkdownFileInfo, Notice, Plugin, requireApiVersion, TFile } from 'obsidian';
 import { around } from "monkey-around";
 
 export default class CanvasMindMap extends Plugin {
@@ -35,7 +35,27 @@ export default class CanvasMindMap extends Plugin {
 					const createChildFileNode = (canvas: any, parentNode: any, file: TFile, path: string, y: number) => {
 						const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
 						let tempChildNode;
-						tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						if(!requireApiVersion("1.1.10")) tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
+						else {
+							tempChildNode = canvas.createFileNode({
+								file: file,
+								subpath: path,
+								pos: {
+									x: parentNode.x + parentNode.width + 200,
+									y: y,
+									width: parentNode.width,
+									height: parentNode.height * 0.6
+								},
+								size: {
+									x: parentNode.x + parentNode.width + 200,
+									y: y,
+									width: parentNode.width,
+									height: parentNode.height * 0.6
+								},
+								save: true,
+								focus: false,
+							});
+						}
 						canvas.deselectAll();
 						canvas.addNode(tempChildNode);
 
@@ -192,22 +212,66 @@ export default class CanvasMindMap extends Plugin {
 			let x = direction === "left" ? node.x - node.width - 50 : direction === "right" ? node.x + node.width + 50 : node.x;
 			let y = direction === "top" ? node.y - node.height - 100 : direction === "bottom" ? node.y + node.height + 100 : node.y;
 
-			const tempChildNode = canvas.createTextNode({
-				x: x,
-				y: y
-			}, { height: node.height, width: node.width }, true);
+			if(requireApiVersion("1.1.10")) {
+				const tempChildNode = canvas.createTextNode({
+					pos: {
+						x: x,
+						y: y,
+						height: node.height,
+						width: node.width
+					},
+					size: {
+						x: x,
+						y: y,
+						height: node.height,
+						width: node.width
+					},
+					text: "",
+					focus: true,
+					save: true,
+				});
 
-			canvas.zoomToSelection();
+				canvas.zoomToSelection();
 
-			return tempChildNode;
+				return tempChildNode;
+			} else {
+				const tempChildNode = canvas.createTextNode({
+					x: x,
+					y: y
+				}, { height: node.height, width: node.width }, true);
+
+				canvas.zoomToSelection();
+
+				return tempChildNode;
+			}
 		}
 
 		const createNode = async (canvas: any, parentNode: any, y: number) => {
 			let tempChildNode;
-			tempChildNode = canvas.createTextNode({
-				x: parentNode.x + parentNode.width + 200,
-				y: y
-			}, { height: parentNode.height, width: parentNode.width }, true);
+			if(!requireApiVersion("1.1.10")) {
+				tempChildNode = canvas.createTextNode({
+					x: parentNode.x + parentNode.width + 200,
+					y: y
+				}, { height: parentNode.height, width: parentNode.width }, true);
+			} else {
+				tempChildNode = canvas.createTextNode({
+					pos: {
+						x: parentNode.x + parentNode.width + 200,
+						y: y,
+						height: parentNode.height,
+						width: parentNode.width
+					},
+					size: {
+						x: parentNode.x + parentNode.width + 200,
+						y: y,
+						height: parentNode.height,
+						width: parentNode.width
+					},
+					text: "",
+					focus: false,
+					save: true,
+				});
+			}
 			canvas.deselectAll();
 			canvas.addNode(tempChildNode);
 
@@ -229,6 +293,42 @@ export default class CanvasMindMap extends Plugin {
 			const uninstaller = around(patchCanvasView.prototype, {
 				onKeydown: (next) =>
 					async function (e: any) {
+						if(e.ctrlKey) {
+							switch (e.key) {
+								case "ArrowUp":
+									createSperateNode(this, "top");
+									break;
+								case "ArrowDown":
+									createSperateNode(this, "bottom");
+									break;
+								case "ArrowLeft":
+									createSperateNode(this, "left");
+									break;
+								case "ArrowRight":
+									createSperateNode(this, "right");
+									break;
+							}
+							return;
+						}
+
+						if(e.altKey) {
+							switch (e.key) {
+								case "ArrowUp":
+									navigate(this, "top");
+									break;
+								case "ArrowDown":
+									navigate(this, "bottom");
+									break;
+								case "ArrowLeft":
+									navigate(this, "left");
+									break;
+								case "ArrowRight":
+									navigate(this, "right");
+									break;
+							}
+							return ;
+						}
+
 						if (e.key === "Backspace" || e.key === "Delete") {
 							if (this.selection.size !== 1) {
 								return next.call(this, e);
@@ -430,41 +530,6 @@ export default class CanvasMindMap extends Plugin {
 							this.selectOnly(tempChildNode);
 							this.zoomToSelection();
 							tempChildNode.startEditing();
-						}
-
-
-
-						if(e.ctrlKey) {
-							switch (e.key) {
-								case "ArrowUp":
-									createSperateNode(this, "top");
-									break;
-								case "ArrowDown":
-									createSperateNode(this, "bottom");
-									break;
-								case "ArrowLeft":
-									createSperateNode(this, "left");
-									break;
-								case "ArrowRight":
-									createSperateNode(this, "right");
-									break;
-							}
-							return;
-						}
-
-						switch (e.key) {
-							case "ArrowUp":
-								navigate(this, "top");
-								break;
-							case "ArrowDown":
-								navigate(this, "bottom");
-								break;
-							case "ArrowLeft":
-								navigate(this, "left");
-								break;
-							case "ArrowRight":
-								navigate(this, "right");
-								break;
 						}
 					},
 			});
