@@ -294,6 +294,42 @@ export default class CanvasMindMap extends Plugin {
 			const uninstaller = around(patchCanvasView.prototype, {
 				onKeydown: (next) =>
 					async function (e: any) {
+						if(e.ctrlKey) {
+							switch (e.key) {
+								case "ArrowUp":
+									createSperateNode(this, "top");
+									break;
+								case "ArrowDown":
+									createSperateNode(this, "bottom");
+									break;
+								case "ArrowLeft":
+									createSperateNode(this, "left");
+									break;
+								case "ArrowRight":
+									createSperateNode(this, "right");
+									break;
+							}
+							return;
+						}
+
+						if(e.altKey) {
+							switch (e.key) {
+								case "ArrowUp":
+									navigate(this, "top");
+									break;
+								case "ArrowDown":
+									navigate(this, "bottom");
+									break;
+								case "ArrowLeft":
+									navigate(this, "left");
+									break;
+								case "ArrowRight":
+									navigate(this, "right");
+									break;
+							}
+							return ;
+						}
+
 						if (e.key === "Backspace" || e.key === "Delete") {
 							if (this.selection.size !== 1) {
 								return next.call(this, e);
@@ -495,41 +531,6 @@ export default class CanvasMindMap extends Plugin {
 							this.selectOnly(tempChildNode);
 							this.zoomToSelection();
 							tempChildNode.startEditing();
-						}
-
-
-
-						if(e.ctrlKey) {
-							switch (e.key) {
-								case "ArrowUp":
-									createSperateNode(this, "top");
-									break;
-								case "ArrowDown":
-									createSperateNode(this, "bottom");
-									break;
-								case "ArrowLeft":
-									createSperateNode(this, "left");
-									break;
-								case "ArrowRight":
-									createSperateNode(this, "right");
-									break;
-							}
-							return;
-						}
-
-						switch (e.key) {
-							case "ArrowUp":
-								navigate(this, "top");
-								break;
-							case "ArrowDown":
-								navigate(this, "bottom");
-								break;
-							case "ArrowLeft":
-								navigate(this, "left");
-								break;
-							case "ArrowRight":
-								navigate(this, "right");
-								break;
 						}
 					},
 			});
