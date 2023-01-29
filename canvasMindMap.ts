@@ -1,5 +1,6 @@
 import { ItemView, MarkdownFileInfo, Notice, Plugin, requireApiVersion, TFile } from 'obsidian';
 import { around } from "monkey-around";
+import { addEdge, createChildFileNode, random } from "./utils";
 
 export default class CanvasMindMap extends Plugin {
 
@@ -16,58 +17,14 @@ export default class CanvasMindMap extends Plugin {
 
 	registerCommands() {
 		this.addCommand({
-		    id: 'split-into-mindmap',
-		    name: 'Split into mindmap based on H1',
+		    id: 'split-heading-into-mindmap',
+		    name: 'Split Heading into mindmap based on H1',
 		    checkCallback: (checking: boolean) => {
 		        // Conditions to check
 		        const canvasView = app.workspace.getActiveViewOfType(ItemView);
 		        if (canvasView?.getViewType() === "canvas") {
 		            // If checking is true, we're simply "checking" if the command can be run.
 		            // If checking is false, then we want to actually perform the operation.
-					const random = (e: number) => {
-						let t = [];
-						for (let n = 0; n < e; n++) {
-							t.push((16 * Math.random() | 0).toString(16));
-						}
-						return t.join("")
-					}
-
-					const createChildFileNode = (canvas: any, parentNode: any, file: TFile, path: string, y: number) => {
-						const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
-						let tempChildNode;
-						if(!requireApiVersion("1.1.10")) tempChildNode = canvas.createFileNode(file, path, {x: parentNode.x + parentNode.width + 200, y: y, height: parentNode.height * 0.6, width: parentNode.width}, true);
-						else {
-							tempChildNode = canvas.createFileNode({
-								file: file,
-								subpath: path,
-								pos: {
-									x: parentNode.x + parentNode.width + 200,
-									y: y,
-									width: parentNode.width,
-									height: parentNode.height * 0.6
-								},
-								size: {
-									x: parentNode.x + parentNode.width + 200,
-									y: y,
-									width: parentNode.width,
-									height: parentNode.height * 0.6
-								},
-								save: true,
-								focus: false,
-							});
-						}
-						canvas.deselectAll();
-						canvas.addNode(tempChildNode);
-
-						const tempEdge = new edge.constructor(canvas, random(16), {side: "right", node: parentNode}, {side: "left", node: tempChildNode})
-						canvas.addEdge(tempEdge);
-
-						tempEdge.render();
-						canvas.requestSave();
-
-						return tempChildNode;
-					}
-
 
 		            if (!checking) {
 						// @ts-ignore
@@ -104,52 +61,58 @@ export default class CanvasMindMap extends Plugin {
 	}
 
 	patchCanvas() {
-		const random = (e: number) => {
-			let t = [];
-			for (let n = 0; n < e; n++) {
-				t.push((16 * Math.random() | 0).toString(16));
-			}
-			return t.join("")
-		}
-
 		const createEdge = async (node1: any, node2: any, canvas: any)=> {
-			const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
-
-			if (edge) {
-				const tempEdge = new edge.constructor(canvas, random(16), {
+			if(requireApiVersion("1.1.9")) {
+				addEdge(canvas, random(16), {
+					fromOrTo: "from",
 					side: "right",
 					node: node1
-				}, { side: "left", node: node2 })
-				canvas.addEdge(tempEdge);
-
-				tempEdge.render();
+				},{
+					fromOrTo: "to",
+					side: "left",
+					node: node2
+				})
 			} else {
-				setTimeout(async () => {
-					const canvasFile = await this.app.vault.cachedRead(canvas.view.file);
-					const canvasFileData = JSON.parse(canvasFile);
 
-					canvasFileData.edges.push({
-						id: random(16),
-						fromNode: node1.id,
-						fromSide: "right",
-						toNode: node2.id,
-						toSide: "left"
-					});
-					canvasFileData.nodes.push({
-						id: node2.id,
-						x: node2.x,
-						y: node2.y,
-						width: node2.width,
-						height: node2.height,
-						type: "text",
-						text: node2.text,
-					})
+				// Leave code here to prevent error when Obsidian version is lower than 1.1.9??
+				const edge = canvas.edges.get(canvas.getData().edges.first()?.id);
 
-					canvas.setData(canvasFileData);
-					canvas.requestSave();
+				if (edge) {
+					const tempEdge = new edge.constructor(canvas, random(16), {
+						side: "right",
+						node: node1
+					}, { side: "left", node: node2 })
+					canvas.addEdge(tempEdge);
 
-					// await this.app.vault.modify(canvas.view.file, JSON.stringify(canvasFileData, null, 2));
-				}, 500);
+					tempEdge.render();
+
+
+				} else {
+					setTimeout(async () => {
+						const canvasFile = await this.app.vault.cachedRead(canvas.view.file);
+						const canvasFileData = JSON.parse(canvasFile);
+
+						canvasFileData.edges.push({
+							id: random(16),
+							fromNode: node1.id,
+							fromSide: "right",
+							toNode: node2.id,
+							toSide: "left"
+						});
+						canvasFileData.nodes.push({
+							id: node2.id,
+							x: node2.x,
+							y: node2.y,
+							width: node2.width,
+							height: node2.height,
+							type: "text",
+							text: node2.text,
+						})
+
+						canvas.setData(canvasFileData);
+						canvas.requestSave();
+					}, 500);
+				}
 			}
 		}
 
@@ -359,11 +322,9 @@ export default class CanvasMindMap extends Plugin {
 
 		}
 
-		const createSlibeNode = async (canvas: any) => {
+		const createSiblingNode = async (canvas: any) => {
 			if (canvas.selection.size !== 1) return;
 			const childNode = canvas.selection.entries().next().value[1];
-
-			console.log(childNode);
 
 			if (childNode.isEditing) return;
 
@@ -457,7 +418,7 @@ export default class CanvasMindMap extends Plugin {
 						this.scope.register([], "Enter", async () => {
 
 
-							const node = await createSlibeNode(this.canvas);
+							const node = await createSiblingNode(this.canvas);
 							console.log(node);
 							if(!node) return;
 
