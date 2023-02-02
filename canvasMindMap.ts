@@ -129,34 +129,40 @@ export default class CanvasMindMap extends Plugin {
 			canvas.deselectAll();
 
 			let nextNode = null;
-			if(direction === "top") {
-				let nodeArray = currentViewPortNodes.filter((item: any) => item.y < y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
-				if(nodeArray.length === 0) {
-					nextNode = currentViewPortNodes.filter((node: any) => node.y < y).sort((a: any, b: any) => b.y - a.y).sort((a: any, b: any) => a.x - b.x)[0];
-				}else {
-					nextNode = nodeArray?.sort((a: any, b: any) => b.y - a.y)[0];
-				}
-			} else if(direction === "bottom") {
-				let nodeArray = currentViewPortNodes.filter((item: any) => item.y > y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
-				if(nodeArray.length === 0) {
-					nextNode = currentViewPortNodes.filter((node: any) => node.y > y).sort((a: any, b: any) => a.y - b.y).sort((a: any, b: any) => a.x - b.x )[0];
-				}else {
-					nextNode = nodeArray?.sort((a: any, b: any) => a.y - b.y)[0];
-				}
-			} else if(direction === "left") {
-				let nodeArray = currentViewPortNodes.filter((item: any) => item.x < x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
-				if(nodeArray.length === 0) {
-					nextNode = currentViewPortNodes.filter((node: any) => node.x < x).sort((a: any, b: any) => b.x - a.x).sort((a: any, b: any) => a.y - b.y)[0];
-				}else {
-					nextNode = nodeArray?.sort((a: any, b: any) => b.x - a.x)[0];
-				}
-			} else if (direction === "right") {
-				let nodeArray = currentViewPortNodes.filter((item: any) => item.x > x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
-				if(nodeArray.length === 0) {
-					nextNode = currentViewPortNodes.filter((node: any) => node.x > x).sort((a: any, b: any) => a.x - b.x).sort((a: any, b: any) => a.y - b.y)[0];
-				}else{
-					nextNode = nodeArray?.sort((a: any, b: any) => a.x - b.x)[0];
-				}
+			let nodeArray = null;
+			switch(direction) {
+				case "top":
+					nodeArray = currentViewPortNodes.filter((item: any) => item.y < y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
+					if(nodeArray.length === 0) {
+						nextNode = currentViewPortNodes.filter((node: any) => node.y < y).sort((a: any, b: any) => b.y - a.y).sort((a: any, b: any) => a.x - b.x)[0];
+					}else {
+						nextNode = nodeArray?.sort((a: any, b: any) => b.y - a.y)[0];
+					}
+					break;
+				case "bottom":
+					nodeArray = currentViewPortNodes.filter((item: any) => item.y > y).filter((item: any) => (item.x  < x + currentSelectionItem.width / 2 && item.x + item.width > x + currentSelectionItem.width / 2));
+					if(nodeArray.length === 0) {
+						nextNode = currentViewPortNodes.filter((node: any) => node.y > y).sort((a: any, b: any) => a.y - b.y).sort((a: any, b: any) => a.x - b.x )[0];
+					}else {
+						nextNode = nodeArray?.sort((a: any, b: any) => a.y - b.y)[0];
+					}
+					break;
+				case  "left":
+					nodeArray = currentViewPortNodes.filter((item: any) => item.x < x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
+					if(nodeArray.length === 0) {
+						nextNode = currentViewPortNodes.filter((node: any) => node.x < x).sort((a: any, b: any) => b.x - a.x).sort((a: any, b: any) => a.y - b.y)[0];
+					}else {
+						nextNode = nodeArray?.sort((a: any, b: any) => b.x - a.x)[0];
+					}
+					break;
+				case "right":
+					nodeArray = currentViewPortNodes.filter((item: any) => item.x > x).filter((item: any) => (item.y  < y + currentSelectionItem.height / 2 && item.y + item.height > y + currentSelectionItem.height / 2));
+					if(nodeArray.length === 0) {
+						nextNode = currentViewPortNodes.filter((node: any) => node.x > x).sort((a: any, b: any) => a.x - b.x).sort((a: any, b: any) => a.y - b.y)[0];
+					}else{
+						nextNode = nodeArray?.sort((a: any, b: any) => a.x - b.x)[0];
+					}
+					break;
 			}
 
 			if(nextNode) {
@@ -167,7 +173,7 @@ export default class CanvasMindMap extends Plugin {
 			return nextNode;
 		}
 
-		const createSperateNode = (canvas: any, direction: string) => {
+		const createFloatingNode = (canvas: any, direction: string) => {
 			let selection = canvas.selection;
 			if(selection.size !== 1) return;
 
@@ -209,7 +215,7 @@ export default class CanvasMindMap extends Plugin {
 			}
 		}
 
-		const createNode = async (canvas: any, parentNode: any, y: number) => {
+		const childNode = async (canvas: any, parentNode: any, y: number) => {
 			let tempChildNode;
 			if(!requireApiVersion("1.1.10")) {
 				tempChildNode = canvas.createTextNode({
@@ -245,17 +251,6 @@ export default class CanvasMindMap extends Plugin {
 			return tempChildNode;
 		}
 
-		const startEditing = (canvas: any) => {
-			if(!canvas) return;
-
-			const selection = canvas.selection;
-			if(selection.size !== 1) return;
-			const node = selection.entries().next().value[1];
-
-			if(node.isEditing) return;
-			node.startEditing();
-		}
-
 		const createChildNode = async (canvas: any) => {
 			if (canvas.selection.size !== 1) return;
 			const parentNode = canvas.selection.entries().next().value[1];
@@ -270,7 +265,7 @@ export default class CanvasMindMap extends Plugin {
 			let tempChildNode;
 
 			if (prevParentEdges.length === 0) {
-				tempChildNode = await createNode(canvas, parentNode, parentNode.y);
+				tempChildNode = await childNode(canvas, parentNode, parentNode.y);
 			} else {
 				let prevAllNodes = [];
 				for (let i = 0; i < prevParentEdges?.length; i++) {
@@ -284,7 +279,7 @@ export default class CanvasMindMap extends Plugin {
 					});
 				}
 				const distanceY = prevAllNodes[prevAllNodes.length - 1]?.y + prevAllNodes[prevAllNodes.length - 1]?.height + 20;
-				tempChildNode = await createNode(canvas, parentNode, distanceY);
+				tempChildNode = await childNode(canvas, parentNode, distanceY);
 
 				prevAllNodes.push(tempChildNode)
 				prevAllNodes.sort((a: any, b: any) => {
@@ -335,7 +330,7 @@ export default class CanvasMindMap extends Plugin {
 			const parentNode = edges[0].from.node;
 
 			const distanceY = childNode.y + childNode.height / 2 + 110;
-			const tempChildNode = await createNode(canvas, parentNode, distanceY);
+			const tempChildNode = await childNode(canvas, parentNode, distanceY);
 
 			let wholeHeight = 0;
 			let parentEdges = canvas.getEdgesForNode(parentNode).filter((item: any) => {
@@ -390,16 +385,16 @@ export default class CanvasMindMap extends Plugin {
 				onOpen: (next) =>
 					async function () {
 						this.scope.register(["Mod"], "ArrowUp", () => {
-							createSperateNode(this.canvas, "top");
+							createFloatingNode(this.canvas, "top");
 						})
 						this.scope.register(["Mod"], "ArrowDown", () => {
-							createSperateNode(this.canvas, "bottom");
+							createFloatingNode(this.canvas, "bottom");
 						});
 						this.scope.register(["Mod"], "ArrowLeft", () => {
-							createSperateNode(this.canvas, "left");
+							createFloatingNode(this.canvas, "left");
 						});
 						this.scope.register(["Mod"], "ArrowRight", () => {
-							createSperateNode(this.canvas, "right");
+							createFloatingNode(this.canvas, "right");
 						});
 
 						this.scope.register(["Alt"], "ArrowUp", () => {
