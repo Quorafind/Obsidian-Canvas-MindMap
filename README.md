@@ -3,6 +3,8 @@
 - Press `Enter` to create brother card;
 - Press `Tab` to create child card;
 - Delete card to rearrange layout automatically;
+- Press `Alt` + `←/→/↓/↑` to navigate between cards;
+- Press `Cmd / Ctrl` + `←/→/↓/↑` to create floating cards;
 
 ## Showcase
 
@@ -10,7 +12,7 @@
 
 # How to Install
 
-## From Plugin Market in Obsidian [Not Yet]
+## From Plugin Market in Obsidian
 
 💜: Directly install from Obsidian Market.
 
