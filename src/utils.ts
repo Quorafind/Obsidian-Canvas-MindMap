@@ -83,13 +83,3 @@ export const addEdge = (canvas: any, edgeID: string, fromEdge: edgeT, toEdge: ed
 
 	canvas.requestFrame();
 }
-
-export const addNode = (canvas: any, nodeType:string = "text"): void => {
-	if(!canvas) return;
-
-	switch (nodeType) {
-		case "text":
-			canvas.createTextNode()
-	}
-}
-
