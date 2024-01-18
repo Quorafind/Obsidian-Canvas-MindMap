@@ -316,15 +316,13 @@ export default class CanvasMindMap extends Plugin {
 
 
 		const patchCanvas = () => {
+
 			const canvasView = this.app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
-			console.log(canvas);
+      
 			if (!canvasView) return false;
-
 			const patchCanvasView = canvas.constructor;
-
-			console.log("patchCanvasView", patchCanvasView);
 
 			const canvasViewunistaller = around(canvasView.constructor.prototype, {
 				onOpen: (next) =>
@@ -364,14 +362,11 @@ export default class CanvasMindMap extends Plugin {
 							setTimeout(() => {
 								const realNode = this.canvas.nodes?.get(node.id);
 								realNode?.startEditing();
-
 								this.canvas.zoomToSelection();
 							}, 0);
 						});
 
 						this.scope.register([], "Tab", async () => {
-
-
 							const node = await createChildNode(this.canvas);
 							console.log(this, node);
 							if (!node) return;
@@ -379,7 +374,6 @@ export default class CanvasMindMap extends Plugin {
 							setTimeout(() => {
 								const realNode = this.canvas.nodes?.get(node.id);
 								realNode?.startEditing();
-
 								this.canvas.zoomToSelection();
 							}, 0);
 						});
