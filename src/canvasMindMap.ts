@@ -316,9 +316,10 @@ export default class CanvasMindMap extends Plugin {
 
 
 		const patchCanvas = () => {
-			const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view;
+			const canvasView = this.app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
+			console.log(canvas);
 			if (!canvasView) return false;
 
 			const patchCanvasView = canvas.constructor;
@@ -358,22 +359,27 @@ export default class CanvasMindMap extends Plugin {
 
 
 							const node = await createSiblingNode(this.canvas);
-
 							if (!node) return;
 
 							setTimeout(() => {
-								node.startEditing();
+								const realNode = this.canvas.nodes?.get(node.id);
+								realNode?.startEditing();
+
 								this.canvas.zoomToSelection();
 							}, 0);
 						});
 
 						this.scope.register([], "Tab", async () => {
-							const node = await createChildNode(this.canvas);
 
+
+							const node = await createChildNode(this.canvas);
+							console.log(this, node);
 							if (!node) return;
 
 							setTimeout(() => {
-								node.startEditing();
+								const realNode = this.canvas.nodes?.get(node.id);
+								realNode?.startEditing();
+
 								this.canvas.zoomToSelection();
 							}, 0);
 						});
@@ -474,8 +480,8 @@ export default class CanvasMindMap extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchCanvas()) {
-				const evt = app.workspace.on("layout-change", () => {
-					patchCanvas() && app.workspace.offref(evt);
+				const evt = this.app.workspace.on("layout-change", () => {
+					patchCanvas() && this.app.workspace.offref(evt);
 				});
 				this.registerEvent(evt);
 			}
