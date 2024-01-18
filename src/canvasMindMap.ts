@@ -185,8 +185,13 @@ export default class CanvasMindMap extends Plugin {
 
 			const currentNode = canvas.nodes?.get(tempChildNode?.id!);
 			if (!currentNode) return;
+
 			canvas.selectOnly(currentNode);
 			canvas.zoomToSelection();
+
+			setTimeout(() => {
+				currentNode.startEditing();
+			}, 100);
 
 			return tempChildNode;
 		};
