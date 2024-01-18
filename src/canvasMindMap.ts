@@ -1,15 +1,17 @@
 import { Canvas, CanvasEdge, CanvasNode, ItemView, Plugin, requireApiVersion, SettingTab, TFile } from 'obsidian';
 import { around } from "monkey-around";
 import { addEdge, addNode, buildTrees, createChildFileNode, random } from "./utils";
-import { DEFAULT_SETTINGS, MindMapSettings } from "./mindMapSettings";
+import { DEFAULT_SETTINGS, MindMapSettings, MindMapSettingTab } from "./mindMapSettings";
 import { CanvasEdgeData } from "obsidian/canvas";
 
 
 export default class CanvasMindMap extends Plugin {
 	settings: MindMapSettings;
+	settingTab: MindMapSettingTab;
 
 
 	async onload() {
+		await this.registerSettings();
 		this.registerCommands();
 		this.patchCanvas();
 		this.patchMarkdownFileInfo();
@@ -18,6 +20,12 @@ export default class CanvasMindMap extends Plugin {
 
 	onunload() {
 
+	}
+
+	async registerSettings() {
+		this.settingTab = new MindMapSettingTab(this.app, this);
+		this.addSettingTab(this.settingTab);
+		await this.loadSettings();
 	}
 
 	registerCommands() {
@@ -131,6 +139,9 @@ export default class CanvasMindMap extends Plugin {
 			const currentSelection = canvas.selection;
 			if (currentSelection.size !== 1) return;
 
+			// Check if the selected node is editing
+			if (currentSelection.values().next().value.isEditing) return;
+
 			const selectedItem = currentSelection.values().next().value as CanvasNode;
 			const viewportNodes = canvas.getViewportNodes();
 			const {x, y, width, height} = selectedItem;
@@ -164,6 +175,8 @@ export default class CanvasMindMap extends Plugin {
 			let selection = canvas.selection;
 
 			if (selection.size !== 1) return;
+			// Check if the selected node is editing
+			if (selection.values().next().value.isEditing) return;
 
 			let node = selection.values().next().value;
 			let x = direction === "left" ? node.x - node.width - 50 : direction === "right" ? node.x + node.width + 50 : node.x;
@@ -294,6 +307,8 @@ export default class CanvasMindMap extends Plugin {
 
 		const patchCanvas = () => {
 
+			const self = this;
+
 			const canvasView = this.app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
@@ -304,31 +319,35 @@ export default class CanvasMindMap extends Plugin {
 			const canvasViewunistaller = around(canvasView.constructor.prototype, {
 				onOpen: (next) =>
 					async function () {
-						this.scope.register(["Mod"], "ArrowUp", () => {
-							createFloatingNode(this.canvas, "top");
-						});
-						this.scope.register(["Mod"], "ArrowDown", () => {
-							createFloatingNode(this.canvas, "bottom");
-						});
-						this.scope.register(["Mod"], "ArrowLeft", () => {
-							createFloatingNode(this.canvas, "left");
-						});
-						this.scope.register(["Mod"], "ArrowRight", () => {
-							createFloatingNode(this.canvas, "right");
-						});
+						if (self.settings.create.createFloat) {
+							this.scope.register(["Mod"], "ArrowUp", () => {
+								createFloatingNode(this.canvas, "top");
+							});
+							this.scope.register(["Mod"], "ArrowDown", () => {
+								createFloatingNode(this.canvas, "bottom");
+							});
+							this.scope.register(["Mod"], "ArrowLeft", () => {
+								createFloatingNode(this.canvas, "left");
+							});
+							this.scope.register(["Mod"], "ArrowRight", () => {
+								createFloatingNode(this.canvas, "right");
+							});
+						}
 
-						this.scope.register(["Alt"], "ArrowUp", () => {
-							navigate(this.canvas, "top");
-						});
-						this.scope.register(["Alt"], "ArrowDown", () => {
-							navigate(this.canvas, "bottom");
-						});
-						this.scope.register(["Alt"], "ArrowLeft", () => {
-							navigate(this.canvas, "left");
-						});
-						this.scope.register(["Alt"], "ArrowRight", () => {
-							navigate(this.canvas, "right");
-						});
+						if (self.settings.navigate.useNavigate) {
+							this.scope.register(["Alt"], "ArrowUp", () => {
+								navigate(this.canvas, "top");
+							});
+							this.scope.register(["Alt"], "ArrowDown", () => {
+								navigate(this.canvas, "bottom");
+							});
+							this.scope.register(["Alt"], "ArrowLeft", () => {
+								navigate(this.canvas, "left");
+							});
+							this.scope.register(["Alt"], "ArrowRight", () => {
+								navigate(this.canvas, "right");
+							});
+						}
 
 						this.scope.register([], "Enter", async () => {
 							const node = await createSiblingNode(this.canvas);

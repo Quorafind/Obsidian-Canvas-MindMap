@@ -15,6 +15,7 @@ export interface MindMapSettings {
 		modifierKey: string[];
 	};
 	create: {
+		createFloat: boolean;
 		childDirection: string;
 		siblingWidth: number;
 		siblingHeight: number;
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: MindMapSettings = {
 		modifierKey: ['Alt'],
 	},
 	create: {
+		createFloat: true,
 		childDirection: 'right',
 		siblingWidth: 200,
 		siblingHeight: 100,
@@ -52,7 +54,7 @@ export const DEFAULT_SETTINGS: MindMapSettings = {
 	}
 };
 
-class MindMapSettingTab extends PluginSettingTab {
+export class MindMapSettingTab extends PluginSettingTab {
 	plugin: CanvasMindMap;
 
 	updateSettings(key: any, value: any): void {
@@ -89,45 +91,8 @@ class MindMapSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h2', {text: 'Canvas MindMap'});
 
-		// let rowText: HTMLDivElement;
-		// new Setting(containerEl)
-		//     .setName('Navigate')
-		//     .setDesc('The number of rows in the table')
-		//     .addSlider((slider) =>
-		//         slider
-		//             .setLimits(2, 12, 1)
-		//             .setValue(this.plugin.settings.rowCount)
-		//             .onChange(async (value) => {
-		//                 rowText.innerText = ` ${value.toString()}`;
-		//                 this.plugin.settings.rowCount = value;
-		//             }),
-		//     )
-		//     .settingEl.createDiv("", (el) => {
-		//     rowText = el;
-		//     el.className = "table-generator-setting-text";
-		//     el.innerText = ` ${this.plugin.settings.rowCount.toString()}`;
-		// });
-		//
-		// let columnText: HTMLDivElement;
-		// new Setting(containerEl)
-		//     .setName('Columns Count')
-		//     .setDesc('The number of columns in the table')
-		//     .addSlider((slider) =>
-		//         slider
-		//             .setLimits(2, 12, 1)
-		//             .setValue(this.plugin.settings.columnCount)
-		//             .onChange(async (value) => {
-		//                 columnText.innerText = ` ${value.toString()}`;
-		//                 this.plugin.settings.columnCount = value;
-		//             }),
-		//     )
-		//     .settingEl.createDiv("", (el) => {
-		//     columnText = el;
-		//     el.className = "table-generator-setting-text";
-		//     el.innerText = ` ${this.plugin.settings.columnCount.toString()}`;
-		// });
-
-		this.containerEl.createEl('h2', {text: 'Say Thank You'});
+		this.useNavigateHotkeySetting(containerEl, this.plugin.settings);
+		this.createHotkeySetting(containerEl, this.plugin.settings);
 
 		new Setting(containerEl)
 			.setName('Donate')
@@ -152,19 +117,67 @@ class MindMapSettingTab extends PluginSettingTab {
 				});
 			});
 
-		if (setting.navigate.useNavigate) {
-			new Setting(containerEl)
-				.setName('Modifier Key')
-				.setDesc('The modifier key to use with the hotkey')
-				.addDropdown((dropdown) => {
-					const mods = supportModifierKey();
-					dropdown.addOption('None', 'None');
-					dropdown.setValue(setting.navigate.modifierKey[0]);
-					dropdown.onChange((value) => {
-						this.updateSettings('navigate.modifierKey.0', value);
-					});
-				});
-		}
+		// if (setting.navigate.useNavigate) {
+		// 	new Setting(containerEl)
+		// 		.setName('Modifier Key')
+		// 		.setDesc('The modifier key to use with the hotkey')
+		// 		.addDropdown((dropdown) => {
+		// 			const mods = supportModifierKey();
+		// 			dropdown.addOption('None', 'None');
+		// 			dropdown.setValue(setting.navigate.modifierKey[0]);
+		// 			dropdown.onChange((value) => {
+		// 				this.updateSettings('navigate.modifierKey.0', value);
+		// 			});
+		// 		});
+		// }
 
+	}
+
+	private createHotkeySetting(containerEl: HTMLElement, setting: MindMapSettings) {
+		new Setting(containerEl)
+			.setName('Create Float')
+			.setDesc('Create a float node')
+			.addToggle((toggle) => {
+				toggle.setValue(setting.create.createFloat);
+				toggle.onChange((value) => {
+					this.updateSettings('create.createFloat', value);
+				});
+			});
+		//
+		// new Setting(containerEl)
+		// 	.setName('Child Direction')
+		// 	.setDesc('The direction of the child node')
+		// 	.addDropdown((dropdown) => {
+		// 		dropdown.addOption('Right', 'right');
+		// 		dropdown.addOption('Left', 'left');
+		// 		dropdown.addOption('Up', 'up');
+		// 		dropdown.addOption('Down', 'down');
+		// 		dropdown.setValue(setting.create.childDirection);
+		// 		dropdown.onChange((value) => {
+		// 			this.updateSettings('create.childDirection', value);
+		// 		});
+		// 	});
+		//
+		// new Setting(containerEl)
+		// 	.setName('Sibling Width')
+		// 	.setDesc('The width of the sibling node')
+		// 	.addSlider((slider) => {
+		// 		slider.setLimits(100, 500, 10);
+		// 		slider.setValue(setting.create.siblingWidth);
+		// 		slider.onChange((value) => {
+		// 			this.updateSettings('create.siblingWidth', value);
+		// 		});
+		// 	});
+		//
+		// new Setting(containerEl)
+		// 	.setName('Sibling Height')
+		// 	.setDesc('The height of the sibling node')
+		// 	.addSlider((slider) => {
+		// 		slider.setLimits(50, 300, 10);
+		// 		slider.setValue(setting.create.siblingHeight);
+		// 		slider.onChange((value) => {
+		// 			this.updateSettings('create.siblingHeight', value);
+		// 		});
+		// 	});
 	}
 }
