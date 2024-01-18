@@ -331,8 +331,6 @@ export default class CanvasMindMap extends Plugin {
 						});
 
 						this.scope.register([], "Enter", async () => {
-
-
 							const node = await createSiblingNode(this.canvas);
 							if (!node) return;
 
@@ -354,6 +352,19 @@ export default class CanvasMindMap extends Plugin {
 								this.canvas.zoomToSelection();
 							}, 0);
 						});
+
+						this.scope.register([], 'Space', async (ev: KeyboardEvent) => {
+							const selection = this.canvas.selection;
+							if (selection.size !== 1) return;
+							const node = selection.entries().next().value[1];
+
+							if (node?.label || node?.url) return;
+
+							if (node.isEditing) return;
+							node.startEditing();
+
+						});
+
 						return next.call(this);
 					}
 			});
