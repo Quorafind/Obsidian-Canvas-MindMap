@@ -1,6 +1,6 @@
 {
 	"name": "canvas-mindmap",
-	"version": "0.1.8",
+	"version": "0.1.9",
 	"description": "A plugin to make your canvas work like a mindmap.",
 	"main": "main.js",
 	"scripts": {
