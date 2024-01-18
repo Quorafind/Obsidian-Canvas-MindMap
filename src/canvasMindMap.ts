@@ -185,13 +185,18 @@ export default class CanvasMindMap extends Plugin {
 
 			const currentNode = canvas.nodes?.get(tempChildNode?.id!);
 			if (!currentNode) return;
+
 			canvas.selectOnly(currentNode);
 			canvas.zoomToSelection();
+
+			setTimeout(() => {
+				currentNode.startEditing();
+			}, 100);
 
 			return tempChildNode;
 		};
 
-		const childNode = async (canvas: Canvas, parentNode: any, y: number) => {
+		const childNode = async (canvas: Canvas, parentNode: CanvasNode, y: number) => {
 			let tempChildNode = addNode(
 				canvas, random(16), {
 					x: parentNode.x + parentNode.width + 200,
@@ -232,53 +237,25 @@ export default class CanvasMindMap extends Plugin {
 			if (prevParentEdges.length === 0) {
 				tempChildNode = await childNode(canvas, parentNode, parentNode.y);
 			} else {
-				// const prevAllNodes = [];
-				// for (let i = 0; i < prevParentEdges?.length; i++) {
-				//     let node = prevParentEdges[i].toNode;
-				//     prevAllNodes.push(node);
-				// }
-				//
-				// if (prevAllNodes.length > 1) {
-				//     prevAllNodes.sort((a: any, b: any) => {
-				//         return a.y - b.y;
-				//     });
-				// }
-				// const distanceY = prevAllNodes[prevAllNodes.length - 1]?.y + prevAllNodes[prevAllNodes.length - 1]?.height + 20;
-				// tempChildNode = await childNode(canvas, parentNode, distanceY);
-				//
-				// prevAllNodes.push(tempChildNode);
-				// prevAllNodes.sort((a: any, b: any) => {
-				//     return a.y - b.y;
-				// });
-				//
-				// // Check if this is a Mindmap
-				// if (prevAllNodes.length === 1) return;
-				//
-				// if (prevAllNodes.length > 1 && prevAllNodes[0].x === prevAllNodes[1]?.x) {
-				//     let preNode;
-				//     wholeHeight = prevAllNodes.length * (parentNode.height + 20);
-				//
-				//     for (let i = 0; i < prevAllNodes.length; i++) {
-				//         let tempNode;
-				//         if (i === 0) {
-				//             (tempNode = prevAllNodes[i]).moveTo({
-				//                 x: tempChildNode.x,
-				//                 y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
-				//             });
-				//         } else {
-				//             (tempNode = prevAllNodes[i]).moveTo({
-				//                 x: tempChildNode.x,
-				//                 y: preNode.y + preNode.height + 20
-				//             });
-				//         }
-				//
-				//         canvas.requestSave();
-				//         preNode = tempNode;
-				//     }
-				// }
+				tempChildNode = await siblingNode(canvas, parentNode, prevParentEdges);
 			}
 
 			return tempChildNode;
+
+		};
+
+		const siblingNode = async (canvas: Canvas, parentNode: CanvasNode, prevParentEdges: CanvasEdgeData[]) => {
+			const allEdges = canvas.getEdgesForNode(parentNode).filter((item: CanvasEdge) => {
+				return prevParentEdges.some((edge: CanvasEdgeData) => {
+					return item.to.node.id === edge.toNode;
+				});
+			});
+
+			const allNodes = allEdges.map((edge: CanvasEdge) => edge.to.node);
+			allNodes.sort((a, b) => a.y - b.y);
+			const lastNode = allNodes[allNodes.length - 1];
+			canvas.selectOnly(lastNode);
+			return await createSiblingNode(canvas);
 
 		};
 
@@ -320,7 +297,7 @@ export default class CanvasMindMap extends Plugin {
 			const canvasView = this.app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
-      
+
 			if (!canvasView) return false;
 			const patchCanvasView = canvas.constructor;
 
@@ -366,9 +343,9 @@ export default class CanvasMindMap extends Plugin {
 							}, 0);
 						});
 
-						this.scope.register([], "Tab", async () => {
+						this.scope.register([], "Tab", async (ev: KeyboardEvent) => {
+
 							const node = await createChildNode(this.canvas);
-							console.log(this, node);
 							if (!node) return;
 
 							setTimeout(() => {
