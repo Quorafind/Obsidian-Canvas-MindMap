@@ -324,12 +324,9 @@ export default class CanvasMindMap extends Plugin {
 			const canvasView = this.app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
-			console.log(canvas);
 			if (!canvasView) return false;
 
 			const patchCanvasView = canvas.constructor;
-
-			console.log("patchCanvasView", patchCanvasView);
 
 			const canvasViewunistaller = around(canvasView.constructor.prototype, {
 				onOpen: (next) =>
@@ -378,7 +375,6 @@ export default class CanvasMindMap extends Plugin {
 
 
 							const node = await createChildNode(this.canvas);
-							console.log(this, node);
 							if (!node) return;
 
 							setTimeout(() => {
