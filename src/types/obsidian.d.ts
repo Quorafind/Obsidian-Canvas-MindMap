@@ -50,6 +50,8 @@ declare module 'obsidian' {
         requestPushHistory: any;
         nodeIndex: any;
 
+        importData(data: CanvasData): void;
+
         requestSave(save?: boolean, triggerBySelf?: boolean): void;
 
         getData(): CanvasData;
@@ -139,7 +141,9 @@ declare module 'obsidian' {
         app: App;
 
         getBBox(containing?: boolean): CanvasCoords;
-        moveTo({x, y}:{x: number, y: number}): void;
+
+        moveTo({x, y}: { x: number, y: number }): void;
+
         render(): void;
     }
 
@@ -175,12 +179,12 @@ declare module 'obsidian' {
 
         from: {
             node: CanvasNode;
-        }
+        };
 
         to: {
             side: 'left' | 'right' | 'top' | 'bottom';
             node: CanvasNode;
-        }
+        };
 
         canvas: Canvas;
         bbox: CanvasCoords;

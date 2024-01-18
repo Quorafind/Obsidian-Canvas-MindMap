@@ -1,8 +1,13 @@
-import { Canvas, CanvasEdge, CanvasNode, ItemView, Plugin, requireApiVersion, TFile } from 'obsidian';
+import { Canvas, CanvasEdge, CanvasNode, ItemView, Plugin, requireApiVersion, SettingTab, TFile } from 'obsidian';
 import { around } from "monkey-around";
-import { addEdge, createChildFileNode, random } from "./utils";
+import { addEdge, addNode, buildTrees, createChildFileNode, random } from "./utils";
+import { DEFAULT_SETTINGS, MindMapSettings } from "./mindMapSettings";
+import { CanvasEdgeData } from "obsidian/canvas";
+
 
 export default class CanvasMindMap extends Plugin {
+	settings: MindMapSettings;
+
 
 	async onload() {
 		this.registerCommands();
@@ -17,34 +22,34 @@ export default class CanvasMindMap extends Plugin {
 
 	registerCommands() {
 		this.addCommand({
-		    id: 'split-heading-into-mindmap',
-		    name: 'Split Heading into mindmap based on H1',
-		    checkCallback: (checking: boolean) => {
-		        // Conditions to check
-		        const canvasView = app.workspace.getActiveViewOfType(ItemView);
-		        if (canvasView?.getViewType() === "canvas") {
-		            // If checking is true, we're simply "checking" if the command can be run.
-		            // If checking is false, then we want to actually perform the operation.
+			id: 'split-heading-into-mindmap',
+			name: 'Split Heading into mindmap based on H1',
+			checkCallback: (checking: boolean) => {
+				// Conditions to check
+				const canvasView = app.workspace.getActiveViewOfType(ItemView);
+				if (canvasView?.getViewType() === "canvas") {
+					// If checking is true, we're simply "checking" if the command can be run.
+					// If checking is false, then we want to actually perform the operation.
 
-		            if (!checking) {
+					if (!checking) {
 						// @ts-ignore
-		                const canvas = canvasView?.canvas;
+						const canvas = canvasView?.canvas;
 						const currentSelection = canvas?.selection;
-						if(currentSelection.size > 1) {
+						if (currentSelection.size > 1) {
 							return;
 						}
 
 						const currentSelectionItem = currentSelection.values().next().value;
-						if(!currentSelectionItem.filePath) return;
+						if (!currentSelectionItem.filePath) return;
 
 						const currentSelectionItemFile = currentSelectionItem.file as TFile;
-						if(!(currentSelectionItemFile.extension === "md")) return;
+						if (!(currentSelectionItemFile.extension === "md")) return;
 
 						const currentFileHeadings = app.metadataCache.getFileCache(currentSelectionItemFile)?.headings;
-						if(!currentFileHeadings) return;
+						if (!currentFileHeadings) return;
 
 						const currentFileHeadingH1 = currentFileHeadings.filter(heading => heading.level === 1);
-						if(currentFileHeadingH1.length === 0) return;
+						if (currentFileHeadingH1.length === 0) return;
 
 						const nodeGroupHeight = (currentSelectionItem.height * 0.6 + 20) * currentFileHeadingH1.length;
 						let direction = -1;
@@ -52,25 +57,25 @@ export default class CanvasMindMap extends Plugin {
 
 						currentFileHeadingH1.forEach((item, index) => {
 							createChildFileNode(canvas, currentSelectionItem, currentSelectionItemFile, "#" + item.heading, nodeGroupY - direction * (currentSelectionItem.height * 0.6 + 20) * index);
-						})
-		            }
-		            return true;
-		        }
-		    }
+						});
+					}
+					return true;
+				}
+			}
 		});
 
 		this.addCommand({
-		    id: 'create-floating-node',
-		    name: 'Create floating node',
-		    checkCallback: (checking: boolean) => {
-		        // Conditions to check
+			id: 'create-floating-node',
+			name: 'Create floating node',
+			checkCallback: (checking: boolean) => {
+				// Conditions to check
 				const canvasView = app.workspace.getActiveViewOfType(ItemView);
 				if (canvasView?.getViewType() === "canvas") {
-		            // If checking is true, we're simply "checking" if the command can be run.
-		            // If checking is false, then we want to actually perform the operation.
-		            if (!checking) {
+					// If checking is true, we're simply "checking" if the command can be run.
+					// If checking is false, then we want to actually perform the operation.
+					if (!checking) {
 						// @ts-ignore
-		                const canvas = canvasView?.canvas;
+						const canvas = canvasView?.canvas;
 
 						const node = canvas.createTextNode({
 							pos: {
@@ -88,80 +93,38 @@ export default class CanvasMindMap extends Plugin {
 							text: "",
 							focus: true,
 							save: true,
-						})
+						});
 
 						canvas.addNode(node);
 						canvas.requestSave();
-						if(!node) return;
+						if (!node) return;
 
 						setTimeout(() => {
 							node.startEditing();
 							canvas.zoomToSelection();
-						}, 0)
-		            }
+						}, 0);
+					}
 
-		            // This command will only show up in Command Palette when the check function returns true
-		            return true;
-		        }
-		    }
+					// This command will only show up in Command Palette when the check function returns true
+					return true;
+				}
+			}
 		});
 	}
 
 	patchCanvas() {
-		const createEdge = async (node1: CanvasNode, node2: CanvasNode, canvas: Canvas) => {
-			if (requireApiVersion("1.1.9")) {
-				addEdge(canvas, random(16), {
-					fromOrTo: "from",
-					side: "right",
-					node: node1
-				}, {
-					fromOrTo: "to",
-					side: "left",
-					node: node2
-				});
-			} else {
-				await createEdgeForOlderVersion(node1, node2, canvas);
-			}
-		};
+		const createEdge = async (node1: any, node2: any, canvas: any) => {
 
-		const createEdgeForOlderVersion = async (node1: CanvasNode, node2: CanvasNode, canvas: Canvas) => {
-			const firstEdge = canvas.edges.get(canvas.getData().edges.first()?.id);
+			addEdge(canvas, random(16), {
+				fromOrTo: "from",
+				side: "right",
+				node: node1
+			}, {
+				fromOrTo: "to",
+				side: "left",
+				node: node2
+			});
 
-			if (firstEdge) {
-				const newEdge = new firstEdge.constructor(canvas, random(16), { side: "right", node: node1 }, { side: "left", node: node2 });
-				canvas.addEdge(newEdge);
-				newEdge.render();
-			} else {
-				await createEdgeFromFileData(node1, node2, canvas);
-			}
-		};
-
-		const createEdgeFromFileData = async (node1: CanvasNode, node2: CanvasNode, canvas: Canvas) => {
-			setTimeout(async () => {
-				const canvasFile = await canvas.view.file.read();
-				const canvasFileData = JSON.parse(canvasFile);
-
-				canvasFileData.edges.push({
-					id: random(16),
-					fromNode: node1.id,
-					fromSide: "right",
-					toNode: node2.id,
-					toSide: "left"
-				});
-
-				canvasFileData.nodes.push({
-					id: node2.id,
-					x: node2.x,
-					y: node2.y,
-					width: node2.width,
-					height: node2.height,
-					type: "text",
-					text: node2.text,
-				});
-
-				canvas.setData(canvasFileData);
-				canvas.requestSave();
-			}, 500);
 		};
 
 		const navigate = (canvas: Canvas, direction: string) => {
@@ -170,7 +133,7 @@ export default class CanvasMindMap extends Plugin {
 
 			const selectedItem = currentSelection.values().next().value as CanvasNode;
 			const viewportNodes = canvas.getViewportNodes();
-			const { x, y, width, height } = selectedItem;
+			const {x, y, width, height} = selectedItem;
 
 			canvas.deselectAll();
 
@@ -200,148 +163,124 @@ export default class CanvasMindMap extends Plugin {
 		const createFloatingNode = (canvas: any, direction: string) => {
 			let selection = canvas.selection;
 
-			if(selection.size !== 1) return;
+			if (selection.size !== 1) return;
 
 			let node = selection.values().next().value;
 			let x = direction === "left" ? node.x - node.width - 50 : direction === "right" ? node.x + node.width + 50 : node.x;
 			let y = direction === "top" ? node.y - node.height - 100 : direction === "bottom" ? node.y + node.height + 100 : node.y;
 
-			if(requireApiVersion("1.1.10")) {
-				const tempChildNode = canvas.createTextNode({
-					pos: {
-						x: x,
-						y: y,
-						height: node.height,
-						width: node.width
-					},
-					size: {
-						x: x,
-						y: y,
-						height: node.height,
-						width: node.width
-					},
-					text: "",
-					focus: true,
-					save: true,
-				});
 
-				canvas.zoomToSelection();
-
-				return tempChildNode;
-			} else {
-				const tempChildNode = canvas.createTextNode({
+			const tempChildNode = addNode(
+				canvas, random(16), {
 					x: x,
-					y: y
-				}, { height: node.height, width: node.width }, true);
+					y: y,
+					width: node.width,
+					height: node.height,
+					type: 'text',
+					content: "",
+				}
+			);
 
-				canvas.zoomToSelection();
+			canvas?.requestSave();
 
-				return tempChildNode;
-			}
-		}
+			const currentNode = canvas.nodes?.get(tempChildNode?.id!);
+			if (!currentNode) return;
+			canvas.selectOnly(currentNode);
+			canvas.zoomToSelection();
 
-		const childNode = async (canvas: any, parentNode: any, y: number) => {
-			let tempChildNode;
-			if(!requireApiVersion("1.1.10")) {
-				tempChildNode = canvas.createTextNode({
+			return tempChildNode;
+		};
+
+		const childNode = async (canvas: Canvas, parentNode: any, y: number) => {
+			let tempChildNode = addNode(
+				canvas, random(16), {
 					x: parentNode.x + parentNode.width + 200,
-					y: y
-				}, { height: parentNode.height, width: parentNode.width }, true);
-			} else {
-				tempChildNode = canvas.createTextNode({
-					pos: {
-						x: parentNode.x + parentNode.width + 200,
-						y: y,
-						height: parentNode.height,
-						width: parentNode.width
-					},
-					size: {
-						x: parentNode.x + parentNode.width + 200,
-						y: y,
-						height: parentNode.height,
-						width: parentNode.width
-					},
-					text: "",
-					focus: false,
-					save: true,
-				});
-			}
-			canvas.deselectAll();
-			canvas.addNode(tempChildNode);
-
+					y: y,
+					width: parentNode.width,
+					height: parentNode.height,
+					type: 'text',
+					content: "",
+				}
+			);
 			await createEdge(parentNode, tempChildNode, canvas);
+
+			canvas.deselectAll();
+			const node = canvas.nodes?.get(tempChildNode?.id!);
+			if (!node) return;
+			canvas.selectOnly(node);
 
 			canvas.requestSave();
 
 			return tempChildNode;
-		}
+		};
 
-		const createChildNode = async (canvas: any) => {
+		const createChildNode = async (canvas: Canvas) => {
 			if (canvas.selection.size !== 1) return;
 			const parentNode = canvas.selection.entries().next().value[1];
 
-			if(parentNode.isEditing) return;
+			if (parentNode.isEditing) return;
 
 			// Calculate the height of all the children nodes
 			let wholeHeight = 0;
 			let tempChildNode;
+			const canvasData = canvas.getData();
 
-			const prevParentEdges = canvas.getEdgesForNode(parentNode).filter((item: any) => {
-				return (item.from.node.id === parentNode.id && item.to.side === "left")
+			const prevParentEdges = canvasData.edges.filter((item: CanvasEdgeData) => {
+				return (item.fromNode === parentNode.id && item.toSide === "left");
 			});
 
 			if (prevParentEdges.length === 0) {
 				tempChildNode = await childNode(canvas, parentNode, parentNode.y);
 			} else {
-				const prevAllNodes = [];
-				for (let i = 0; i < prevParentEdges?.length; i++) {
-					let node = prevParentEdges[i].to.node;
-					prevAllNodes.push(node);
-				}
-
-				if (prevAllNodes.length > 1) {
-					prevAllNodes.sort((a: any, b: any) => {
-						return a.y - b.y;
-					});
-				}
-				const distanceY = prevAllNodes[prevAllNodes.length - 1]?.y + prevAllNodes[prevAllNodes.length - 1]?.height + 20;
-				tempChildNode = await childNode(canvas, parentNode, distanceY);
-
-				prevAllNodes.push(tempChildNode)
-				prevAllNodes.sort((a: any, b: any) => {
-					return a.y - b.y;
-				});
-
-				// Check if this is a Mindmap
-				if (prevAllNodes.length === 1) return;
-
-				if (prevAllNodes.length > 1 && prevAllNodes[0].x === prevAllNodes[1]?.x) {
-					let preNode;
-					wholeHeight = prevAllNodes.length * (parentNode.height + 20);
-
-					for (let i = 0; i < prevAllNodes.length; i++) {
-						let tempNode;
-						if (i === 0) {
-							(tempNode = prevAllNodes[i]).moveTo({
-								x: tempChildNode.x,
-								y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
-							});
-						} else {
-							(tempNode = prevAllNodes[i]).moveTo({
-								x: tempChildNode.x,
-								y: preNode.y + preNode.height + 20
-							});
-						}
-
-						canvas.requestSave();
-						preNode = tempNode;
-					}
-				}
+				// const prevAllNodes = [];
+				// for (let i = 0; i < prevParentEdges?.length; i++) {
+				//     let node = prevParentEdges[i].toNode;
+				//     prevAllNodes.push(node);
+				// }
+				//
+				// if (prevAllNodes.length > 1) {
+				//     prevAllNodes.sort((a: any, b: any) => {
+				//         return a.y - b.y;
+				//     });
+				// }
+				// const distanceY = prevAllNodes[prevAllNodes.length - 1]?.y + prevAllNodes[prevAllNodes.length - 1]?.height + 20;
+				// tempChildNode = await childNode(canvas, parentNode, distanceY);
+				//
+				// prevAllNodes.push(tempChildNode);
+				// prevAllNodes.sort((a: any, b: any) => {
+				//     return a.y - b.y;
+				// });
+				//
+				// // Check if this is a Mindmap
+				// if (prevAllNodes.length === 1) return;
+				//
+				// if (prevAllNodes.length > 1 && prevAllNodes[0].x === prevAllNodes[1]?.x) {
+				//     let preNode;
+				//     wholeHeight = prevAllNodes.length * (parentNode.height + 20);
+				//
+				//     for (let i = 0; i < prevAllNodes.length; i++) {
+				//         let tempNode;
+				//         if (i === 0) {
+				//             (tempNode = prevAllNodes[i]).moveTo({
+				//                 x: tempChildNode.x,
+				//                 y: parentNode.y + parentNode.height / 2 - (wholeHeight / 2)
+				//             });
+				//         } else {
+				//             (tempNode = prevAllNodes[i]).moveTo({
+				//                 x: tempChildNode.x,
+				//                 y: preNode.y + preNode.height + 20
+				//             });
+				//         }
+				//
+				//         canvas.requestSave();
+				//         preNode = tempNode;
+				//     }
+				// }
 			}
 
 			return tempChildNode;
 
-		}
+		};
 
 		const createSiblingNode = async (canvas: Canvas) => {
 			if (canvas.selection.size !== 1) return;
@@ -367,7 +306,7 @@ export default class CanvasMindMap extends Plugin {
 			if (nodes.length > 1 && nodes[0].x === nodes[1]?.x) {
 				nodes.forEach((node: CanvasNode, index: number) => {
 					const yPos = index === 0 ? parentNode.y + parentNode.height / 2 - totalHeight / 2 : nodes[index - 1].y + nodes[index - 1].height + 20;
-					node.moveTo({ x: selectedNode.x, y: yPos });
+					node.moveTo({x: selectedNode.x, y: yPos});
 				});
 			}
 
@@ -384,14 +323,14 @@ export default class CanvasMindMap extends Plugin {
 
 			const patchCanvasView = canvas.constructor;
 
-			console.log("patchCanvasView", patchCanvasView)
+			console.log("patchCanvasView", patchCanvasView);
 
 			const canvasViewunistaller = around(canvasView.constructor.prototype, {
 				onOpen: (next) =>
 					async function () {
 						this.scope.register(["Mod"], "ArrowUp", () => {
 							createFloatingNode(this.canvas, "top");
-						})
+						});
 						this.scope.register(["Mod"], "ArrowDown", () => {
 							createFloatingNode(this.canvas, "bottom");
 						});
@@ -404,7 +343,7 @@ export default class CanvasMindMap extends Plugin {
 
 						this.scope.register(["Alt"], "ArrowUp", () => {
 							navigate(this.canvas, "top");
-						})
+						});
 						this.scope.register(["Alt"], "ArrowDown", () => {
 							navigate(this.canvas, "bottom");
 						});
@@ -420,29 +359,27 @@ export default class CanvasMindMap extends Plugin {
 
 							const node = await createSiblingNode(this.canvas);
 
-							if(!node) return;
+							if (!node) return;
 
 							setTimeout(() => {
 								node.startEditing();
 								this.canvas.zoomToSelection();
-							}, 0)
+							}, 0);
 						});
 
 						this.scope.register([], "Tab", async () => {
-
-
 							const node = await createChildNode(this.canvas);
 
-							if(!node) return;
+							if (!node) return;
 
 							setTimeout(() => {
 								node.startEditing();
 								this.canvas.zoomToSelection();
-							}, 0)
+							}, 0);
 						});
-						return next.call(this)
+						return next.call(this);
 					}
-			})
+			});
 
 			const uninstaller = around(patchCanvasView.prototype, {
 				onKeydown: (next) =>
@@ -465,7 +402,7 @@ export default class CanvasMindMap extends Plugin {
 
 							let wholeHeight = 0;
 							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
-								return (item.from.node.id === parentNode.id && item.to.side === "left")
+								return (item.from.node.id === parentNode.id && item.to.side === "left");
 							});
 
 							let allnodes = [];
@@ -515,12 +452,12 @@ export default class CanvasMindMap extends Plugin {
 
 						if (e.key === " ") {
 							const selection = this.selection;
-							if(selection.size !== 1) return;
+							if (selection.size !== 1) return;
 							const node = selection.entries().next().value[1];
 
-							if(node?.label || node?.url) return ;
+							if (node?.label || node?.url) return;
 
-							if(node.isEditing) return;
+							if (node.isEditing) return;
 							node.startEditing();
 						}
 
@@ -533,7 +470,7 @@ export default class CanvasMindMap extends Plugin {
 			canvas?.view.leaf.rebuildView();
 			console.log("Obsidian-Canvas-MindMap: canvas view patched");
 			return true;
-		}
+		};
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchCanvas()) {
@@ -550,7 +487,7 @@ export default class CanvasMindMap extends Plugin {
 			const canvasView = app.workspace.getLeavesOfType("canvas").first()?.view;
 			// @ts-ignore
 			const canvas = canvasView?.canvas;
-			if(!canvas) return false;
+			if (!canvas) return false;
 
 			const node = Array.from(canvas.nodes).first();
 			if (!node) return false;
@@ -563,12 +500,12 @@ export default class CanvasMindMap extends Plugin {
 					function (e: any, t: any) {
 						next.call(this, e, t);
 						this.canvas.getEdgesForNode(this).forEach((edge: any) => {
-							if(edge.from.node === this) {
+							if (edge.from.node === this) {
 								edge.setColor(e, true);
 								edge.render();
 								// edge.to.node.setColor(e, true);
 							}
-						})
+						});
 						canvas.requestSave();
 					},
 			});
@@ -576,7 +513,7 @@ export default class CanvasMindMap extends Plugin {
 
 			console.log("Obsidian-Canvas-MindMap: canvas node patched");
 			return true;
-		}
+		};
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchNode()) {
@@ -591,7 +528,7 @@ export default class CanvasMindMap extends Plugin {
 	patchMarkdownFileInfo() {
 		const patchEditor = () => {
 			const editorInfo = app.workspace.activeEditor;
-			if(!editorInfo) return false;
+			if (!editorInfo) return false;
 
 			const patchEditorInfo = editorInfo.constructor;
 
@@ -599,7 +536,7 @@ export default class CanvasMindMap extends Plugin {
 				showPreview: (next) =>
 					function (e: any) {
 						next.call(this, e);
-						if(e) {
+						if (e) {
 							this.node?.canvas.wrapperEl.focus();
 							this.node?.setIsEditing(false);
 						}
@@ -609,17 +546,25 @@ export default class CanvasMindMap extends Plugin {
 
 			console.log("Obsidian-Canvas-MindMap: markdown file info patched");
 			return true;
-		}
+		};
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchEditor()) {
 				const evt = app.workspace.on("file-open", () => {
-					setTimeout(()=>{
+					setTimeout(() => {
 						patchEditor() && app.workspace.offref(evt);
 					}, 100);
 				});
 				this.registerEvent(evt);
 			}
 		});
+	}
+
+	public async loadSettings(): Promise<void> {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
 	}
 }
