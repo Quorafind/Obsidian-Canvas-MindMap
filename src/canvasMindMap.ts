@@ -597,7 +597,10 @@ export default class CanvasMindMap extends Plugin {
 	patchMarkdownFileInfo() {
 		const patchEditor = () => {
 			const editorInfo = app.workspace.activeEditor;
+
+			console.log(editorInfo);
 			if (!editorInfo) return false;
+			if (!editorInfo || !editorInfo.containerEl || editorInfo.containerEl.closest('.common-editor-inputer')) return false;
 
 			const patchEditorInfo = editorInfo.constructor;
 
