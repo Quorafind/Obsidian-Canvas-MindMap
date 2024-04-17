@@ -622,7 +622,7 @@ export default class CanvasMindMap extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchEditor()) {
-				const evt = app.workspace.on("active-leaf-change", () => {
+				const evt = app.workspace.on("file-open", () => {
 					setTimeout(() => {
 						patchEditor() && app.workspace.offref(evt);
 					}, 100);
