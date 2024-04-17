@@ -600,7 +600,7 @@ export default class CanvasMindMap extends Plugin {
 
 			console.log(editorInfo);
 			if (!editorInfo) return false;
-			if (editorInfo.containerEl && editorInfo.containerEl.closest('.common-editor-inputer')) return false;
+			if (!editorInfo || !editorInfo.containerEl || editorInfo.containerEl.closest('.common-editor-inputer')) return false;
 
 			const patchEditorInfo = editorInfo.constructor;
 
@@ -622,7 +622,7 @@ export default class CanvasMindMap extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			if (!patchEditor()) {
-				const evt = app.workspace.on("file-open", () => {
+				const evt = app.workspace.on("active-leaf-change", () => {
 					setTimeout(() => {
 						patchEditor() && app.workspace.offref(evt);
 					}, 100);
