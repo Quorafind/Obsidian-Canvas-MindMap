@@ -3,199 +3,203 @@ import { MarkdownView, TFile } from 'obsidian';
 import { CanvasData } from 'obsidian/canvas';
 
 export interface CanvasNodeUnknownData {
-    id: string;
-    collapsed: boolean;
+	id: string;
+	collapsed: boolean;
 
-    [key: string]: any;
+	[key: string]: any;
 }
 
 declare module 'obsidian' {
-    type CanvasNodeID = string;
-    type CanvasEdgeID = string;
+	type CanvasNodeID = string;
+	type CanvasEdgeID = string;
 
-    interface App {
-        appId: string;
-        plugins: {
-            getPlugin(name: string): any;
-        };
-        commands: any;
-    }
+	interface App {
+		appId: string;
+		plugins: {
+			getPlugin(name: string): any;
+		};
+		commands: any;
+	}
 
-    interface View {
-        contentEl: HTMLElement;
+	interface MarkdownFileInfo {
+		containerEl: HTMLElement;
+	}
 
-        file: TFile;
-    }
+	interface View {
+		contentEl: HTMLElement;
 
-    interface CanvasView extends View {
-        canvas: Canvas;
-        file: TFile;
-    }
+		file: TFile;
+	}
 
-    interface Canvas {
-        readonly: boolean;
-        view: MarkdownView;
-        x: number;
-        y: number;
-        nodes: Map<CanvasNodeID, CanvasNode>;
-        edges: Map<string, CanvasEdge>;
-        nodeInteractionLayer: CanvasInteractionLayer;
-        selection: Set<CanvasNode>;
+	interface CanvasView extends View {
+		canvas: Canvas;
+		file: TFile;
+	}
 
-        menu: CanvasMenu;
+	interface Canvas {
+		readonly: boolean;
+		view: MarkdownView;
+		x: number;
+		y: number;
+		nodes: Map<CanvasNodeID, CanvasNode>;
+		edges: Map<string, CanvasEdge>;
+		nodeInteractionLayer: CanvasInteractionLayer;
+		selection: Set<CanvasNode>;
 
-        wrapperEl: HTMLElement;
+		menu: CanvasMenu;
 
-        history: any;
-        requestPushHistory: any;
-        nodeIndex: any;
+		wrapperEl: HTMLElement;
 
-        importData(data: CanvasData): void;
+		history: any;
+		requestPushHistory: any;
+		nodeIndex: any;
 
-        requestSave(save?: boolean, triggerBySelf?: boolean): void;
+		importData(data: CanvasData): void;
 
-        getData(): CanvasData;
+		requestSave(save?: boolean, triggerBySelf?: boolean): void;
 
-        setData(data: CanvasData): void;
+		getData(): CanvasData;
 
-        getEdgesForNode(node: CanvasNode): CanvasEdge[];
+		setData(data: CanvasData): void;
 
-        getContainingNodes(coords: CanvasCoords): CanvasNode[];
+		getEdgesForNode(node: CanvasNode): CanvasEdge[];
 
-        deselectAll(): void;
+		getContainingNodes(coords: CanvasCoords): CanvasNode[];
 
-        select(nodes: CanvasNode): void;
+		deselectAll(): void;
 
-        requestFrame(): void;
+		select(nodes: CanvasNode): void;
 
-        getViewportNodes(): CanvasNode[];
+		requestFrame(): void;
 
-        selectOnly(nodes: CanvasNode): void;
+		getViewportNodes(): CanvasNode[];
 
-        requestSave(save?: boolean, triggerBySelf?: boolean): void;
+		selectOnly(nodes: CanvasNode): void;
 
-        zoomToSelection(): void;
-    }
+		requestSave(save?: boolean, triggerBySelf?: boolean): void;
 
-    interface ICanvasData {
-        nodes: CanvasNode[];
-        edges: CanvasEdge[];
-    }
+		zoomToSelection(): void;
+	}
 
-    interface CanvasMenu {
-        containerEl: HTMLElement;
-        menuEl: HTMLElement;
-        canvas: Canvas;
-        selection: CanvasSelection;
+	interface ICanvasData {
+		nodes: CanvasNode[];
+		edges: CanvasEdge[];
+	}
 
-        render(): void;
+	interface CanvasMenu {
+		containerEl: HTMLElement;
+		menuEl: HTMLElement;
+		canvas: Canvas;
+		selection: CanvasSelection;
 
-        updateZIndex(): void;
-    }
+		render(): void;
 
-    interface CanvasSelection {
-        selectionEl: HTMLElement;
-        resizerEls: HTMLElement;
-        canvas: Canvas;
-        bbox: CanvasCoords | undefined;
+		updateZIndex(): void;
+	}
 
-        render(): void;
+	interface CanvasSelection {
+		selectionEl: HTMLElement;
+		resizerEls: HTMLElement;
+		canvas: Canvas;
+		bbox: CanvasCoords | undefined;
 
-        hide(): void;
+		render(): void;
 
-        onResizePointerDown(e: PointerEvent, direction: CanvasDirection): void;
+		hide(): void;
 
-        update(bbox: CanvasCoords): void;
-    }
+		onResizePointerDown(e: PointerEvent, direction: CanvasDirection): void;
 
-    interface CanvasInteractionLayer {
-        interactionEl: HTMLElement;
-        canvas: Canvas;
-        target: CanvasNode | null;
+		update(bbox: CanvasCoords): void;
+	}
 
-        render(): void;
+	interface CanvasInteractionLayer {
+		interactionEl: HTMLElement;
+		canvas: Canvas;
+		target: CanvasNode | null;
 
-        setTarget(target: CanvasNode | null): void;
-    }
+		render(): void;
 
-    interface CanvasNode {
-        id: CanvasNodeID;
+		setTarget(target: CanvasNode | null): void;
+	}
 
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        zIndex: number;
-        bbox: CanvasCoords;
-        unknownData: CanvasNodeUnknownData;
-        renderedZIndex: number;
+	interface CanvasNode {
+		id: CanvasNodeID;
 
-        headerComponent: Component;
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+		zIndex: number;
+		bbox: CanvasCoords;
+		unknownData: CanvasNodeUnknownData;
+		renderedZIndex: number;
 
-        nodeEl: HTMLElement;
-        labelEl: HTMLElement;
-        contentEl: HTMLElement;
-        containerEl: HTMLElement;
+		headerComponent: Component;
 
-        canvas: Canvas;
-        app: App;
+		nodeEl: HTMLElement;
+		labelEl: HTMLElement;
+		contentEl: HTMLElement;
+		containerEl: HTMLElement;
 
-        getBBox(containing?: boolean): CanvasCoords;
+		canvas: Canvas;
+		app: App;
 
-        moveTo({x, y}: { x: number, y: number }): void;
+		getBBox(containing?: boolean): CanvasCoords;
 
-        render(): void;
-    }
+		moveTo({x, y}: { x: number, y: number }): void;
 
-    interface CanvasTextNode extends CanvasNode {
-        text: string;
-        child: any;
-    }
+		render(): void;
+	}
 
-    interface CanvasFileNode extends CanvasNode {
-        file: TFile;
-    }
+	interface CanvasTextNode extends CanvasNode {
+		text: string;
+		child: any;
+	}
 
-    interface CanvasLinkNode extends CanvasNode {
-        url: string;
-    }
+	interface CanvasFileNode extends CanvasNode {
+		file: TFile;
+	}
 
-    interface CanvasGroupNode extends CanvasNode {
-        label: string;
-    }
+	interface CanvasLinkNode extends CanvasNode {
+		url: string;
+	}
 
-    interface CanvasEdge {
-        id: CanvasEdgeID;
+	interface CanvasGroupNode extends CanvasNode {
+		label: string;
+	}
 
-        label: string | undefined;
-        lineStartGroupEl: SVGGElement;
-        lineEndGroupEl: SVGGElement;
-        lineGroupEl: SVGGElement;
+	interface CanvasEdge {
+		id: CanvasEdgeID;
 
-        path: {
-            display: SVGPathElement;
-            interaction: SVGPathElement;
-        };
+		label: string | undefined;
+		lineStartGroupEl: SVGGElement;
+		lineEndGroupEl: SVGGElement;
+		lineGroupEl: SVGGElement;
 
-        from: {
-            node: CanvasNode;
-        };
+		path: {
+			display: SVGPathElement;
+			interaction: SVGPathElement;
+		};
 
-        to: {
-            side: 'left' | 'right' | 'top' | 'bottom';
-            node: CanvasNode;
-        };
+		from: {
+			node: CanvasNode;
+		};
 
-        canvas: Canvas;
-        bbox: CanvasCoords;
+		to: {
+			side: 'left' | 'right' | 'top' | 'bottom';
+			node: CanvasNode;
+		};
 
-        unknownData: CanvasNodeUnknownData;
-    }
+		canvas: Canvas;
+		bbox: CanvasCoords;
 
-    interface CanvasCoords {
-        maxX: number;
-        maxY: number;
-        minX: number;
-        minY: number;
-    }
+		unknownData: CanvasNodeUnknownData;
+	}
+
+	interface CanvasCoords {
+		maxX: number;
+		maxY: number;
+		minX: number;
+		minY: number;
+	}
 }

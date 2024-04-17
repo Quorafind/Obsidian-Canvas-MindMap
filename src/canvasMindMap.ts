@@ -600,7 +600,7 @@ export default class CanvasMindMap extends Plugin {
 
 			console.log(editorInfo);
 			if (!editorInfo) return false;
-			if (!editorInfo || !editorInfo.containerEl || editorInfo.containerEl.closest('.common-editor-inputer')) return false;
+			if (editorInfo.containerEl && editorInfo.containerEl.closest('.common-editor-inputer')) return false;
 
 			const patchEditorInfo = editorInfo.constructor;
 
