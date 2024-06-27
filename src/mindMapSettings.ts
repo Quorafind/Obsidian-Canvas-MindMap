@@ -93,12 +93,29 @@ export class MindMapSettingTab extends PluginSettingTab {
 
 		this.useNavigateHotkeySetting(containerEl, this.plugin.settings);
 		this.createHotkeySetting(containerEl, this.plugin.settings);
+		this.autoLayoutSettings(containerEl, this.plugin.settings);
 
 		new Setting(containerEl)
 			.setName('Donate')
 			.setDesc('If you like this plugin, consider donating to support continued development:')
 			.addButton((bt) => {
 				bt.buttonEl.outerHTML = `<a href="https://www.buymeacoffee.com/boninall"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=boninall&button_colour=6495ED&font_colour=ffffff&font_family=Inter&outline_colour=000000&coffee_colour=FFDD00"></a>`;
+			});
+	}
+
+	autoLayoutSettings(containerEl: HTMLElement, setting: MindMapSettings) {
+		new Setting(containerEl)
+			.setName('Delete Node to Auto Layout')
+			.setDesc('Deleting MindMap nodes triggers automatic layout update')
+			.addToggle((toggle) => {
+				toggle.setValue(setting.layout.autoLayout);
+				toggle.onChange((value) => {
+					this.updateSettings('layout.autoLayout', value);
+
+					setTimeout(() => {
+						this.display();
+					}, 700);
+				});
 			});
 	}
 

@@ -411,7 +411,18 @@ export default class CanvasMindMap extends Plugin {
 							});
 						}
 
-						this.scope.register([], "Enter", async () => {
+						this.scope.register(["Meta"], "Enter", async () => {
+							const selection = this.canvas.selection;
+							if(selection.size !== 1) return;
+
+							const selectedNode = selection.entries().next().value[1];
+
+							if(selectedNode.isFocused && selectedNode.isEditing) {
+								selectedNode.blur();
+								selectedNode.focus();
+								return;
+							}
+
 							const node = await createSiblingNode(this.canvas, false);
 							if (!node) return;
 
@@ -434,7 +445,7 @@ export default class CanvasMindMap extends Plugin {
 							}, 0);
 						});
 
-						this.scope.register([], 'Space', async (ev: KeyboardEvent) => {
+						this.scope.register([], 'Enter', async (ev: KeyboardEvent) => {
 							const selection = this.canvas.selection;
 							if (selection.size !== 1) return;
 							const node = selection.entries().next().value[1];
@@ -443,7 +454,6 @@ export default class CanvasMindMap extends Plugin {
 
 							if (node.isEditing) return;
 							node.startEditing();
-
 						});
 
 						return next.call(this);
@@ -453,70 +463,72 @@ export default class CanvasMindMap extends Plugin {
 			const uninstaller = around(patchCanvasView.prototype, {
 				onKeydown: (next) =>
 					async function (e: any) {
-						if (e.key === "Backspace" || e.key === "Delete") {
-							if (this.selection.size !== 1) {
-								return next.call(this, e);
-							}
-							const childNode = this.selection.entries().next().value[1];
-							if (childNode.isEditing) return;
-
-							const edges = this.getEdgesForNode(childNode).filter((item: any) => {
-								return item.to.node.id === childNode.id;
-							});
-							if (edges.length === 0) return;
-							const parentNode = edges[0].from.node;
-
-
-							next.call(this, e);
-
-							let wholeHeight = 0;
-							let parentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
-								return (item.from.node.id === parentNode.id && item.to.side === "left");
-							});
-
-							let allnodes = [];
-							for (let i = 0; i < parentEdges.length; i++) {
-								let node = parentEdges[i].to.node;
-								allnodes.push(node);
-								wholeHeight += (node.height + 20);
-							}
-							allnodes.sort((a: any, b: any) => {
-								return a.y - b.y;
-							});
-
-							// Check if this is a Mindmap
-							if (allnodes.length === 1) return;
-							if (allnodes.length > 1) {
-								if (allnodes[0].x !== allnodes[0].x) {
-									return;
+						if(self.settings.layout.autoLayout) {
+							if (e.key === "Backspace" || e.key === "Delete") {
+								if (this.selection.size !== 1) {
+									return next.call(this, e);
 								}
-							}
+								const childNode = this.selection.entries().next().value[1];
+								if (childNode.isEditing) return;
 
-							let preNode;
-							for (let i = 0; i < allnodes.length; i++) {
-								let tempNode;
-								if (i === 0) {
-									(tempNode = allnodes[i]).moveTo({
-										x: childNode.x,
-										y: parentNode.y + parentNode.height - (wholeHeight / 2)
-									});
-								} else {
-									(tempNode = allnodes[i]).moveTo({
-										x: childNode.x,
-										y: preNode.y + preNode.height + 20
-									});
+								const edges = this.getEdgesForNode(childNode).filter((item: any) => {
+									return item.to.node.id === childNode.id;
+								});
+								if (edges.length === 0) return;
+								const parentNode = edges[0].from.node;
+
+
+								next.call(this, e);
+
+								let wholeHeight = 0;
+								let parentEdges = this.getEdgesForNode(parentNode).filter((item: any) => {
+									return (item.from.node.id === parentNode.id && item.to.side === "left");
+								});
+
+								let allnodes = [];
+								for (let i = 0; i < parentEdges.length; i++) {
+									let node = parentEdges[i].to.node;
+									allnodes.push(node);
+									wholeHeight += (node.height + 20);
 								}
+								allnodes.sort((a: any, b: any) => {
+									return a.y - b.y;
+								});
+
+								// Check if this is a Mindmap
+								if (allnodes.length === 1) return;
+								if (allnodes.length > 1) {
+									if (allnodes[0].x !== allnodes[0].x) {
+										return;
+									}
+								}
+
+								let preNode;
+								for (let i = 0; i < allnodes.length; i++) {
+									let tempNode;
+									if (i === 0) {
+										(tempNode = allnodes[i]).moveTo({
+											x: childNode.x,
+											y: parentNode.y + parentNode.height - (wholeHeight / 2)
+										});
+									} else {
+										(tempNode = allnodes[i]).moveTo({
+											x: childNode.x,
+											y: preNode.y + preNode.height + 20
+										});
+									}
+									this.requestSave();
+									preNode = tempNode;
+								}
+
 								this.requestSave();
-								preNode = tempNode;
+
+								this.selectOnly(parentNode);
+								this.zoomToSelection();
+								parentNode.startEditing();
+
+								return;
 							}
-
-							this.requestSave();
-
-							this.selectOnly(parentNode);
-							this.zoomToSelection();
-							parentNode.startEditing();
-
-							return;
 						}
 
 						if (e.key === " ") {

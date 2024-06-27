@@ -1,9 +1,11 @@
 # Obsidian Canvas MindMap
 
-- Press `Enter` to create brother card;
+- Press `Cmd` + `Enter` to create brother card;
 - Press `Tab` to create child card;
+- Press `Space` or `Enter` to start editing the selected node;
+    - When editing a node, press `Cmd` + `Enter` to exit editing (similar to `Escape`)
+	- This allows for fast chaining of nodes
 - Delete card to rearrange layout automatically;
-- Press `Alt` + `←/→/↓/↑` to navigate between cards;
 - Press `Cmd / Ctrl` + `←/→/↓/↑` to create floating cards;
 
 ## Showcase
