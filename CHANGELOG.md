@@ -36,4 +36,3 @@
 
 - Cannot enter edit mode when create a new node;
 - Cannot delete node when node is the only child of its parent/only node in the mindmap;
-- 
