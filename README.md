@@ -1,10 +1,24 @@
-# Obsidian Canvas MindMap
+# Canvas MindMap
 
-- Press `Enter` to create brother card;
+- Auto layout for specific direction
+- Select node's tree
+- Change color for node's edges
+
+## Hotkeys
+
+- Press `Enter` to create brother card; (You can change this hotkey in setting)
 - Press `Tab` to create child card;
-- Delete card to rearrange layout automatically;
-- Press `Alt` + `←/→/↓/↑` to navigate between cards;
-- Press `Cmd / Ctrl` + `←/→/↓/↑` to create floating cards;
+- Press `Alt` + `←/→/↓/↑` to navigate between nodes;
+- Press `Cmd / Ctrl` + `←/→/↓/↑` to create floating nodes;
+- Press `Cmd / Ctrl` + `Shift` + `←/→/↓/↑` to create child nodes;
+
+## Commands
+
+- Create child node
+- Create sibling node
+- Create floating node
+- Open changelog
+- Enter/exit edit mode
 
 ## Showcase
 
@@ -12,23 +26,6 @@
 
 # How to Install
 
-## From Plugin Market in Obsidian
-
-💜: Directly install from Obsidian Market.
-
-## From BRAT
-
-🚗: Add `Quorafind/obsidian-canvas-mindmap` to BRAT.
-
-## Download Manually
-
-🚚: Download the latest release. Extract and put the three files (main.js, manifest.json, styles.css) to
-folder `{{obsidian_vault}}/.obsidian/plugins/obsidian-canvas-mindmap`.
-
-# Say Thank You
-
-If you are enjoying this plugin then please support my work and enthusiasm by buying me a coffee
-on [https://www.buymeacoffee.com/boninall](https://www.buymeacoffee.com/boninall).
-.
-
-<a href="https://www.buymeacoffee.com/boninall"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=boninall&button_colour=6495ED&font_colour=ffffff&font_family=Lato&outline_colour=000000&coffee_colour=FFDD00"></a>
+- Obsidian: [Available on Obsidian Plugin Market](https://obsidian.md/plugins?id=canvas-mindmap)
+- BRAT: Add `quorafind/canvas-mindmap` to BRAT.
+- Manual: Download the latest release. Extract and put the three files (main.js, manifest.json, styles.css) to `{{obsidian_vault}}/.obsidian/plugins/obsidian-canvas-mindmap`.
